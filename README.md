@@ -82,19 +82,20 @@ VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 ```
 
-### Comandos (a confirmar após scaffold)
+### Comandos (frontend em `app/`)
 ```bash
-# instalar dependências
+cd app
 npm install
+copy .env.example .env.local   # preencher VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY
 
-# desenvolvimento
 npm run dev
-
-# qualidade (RNF08)
 npm run typecheck
 npm run lint
+npm run build
+```
 
-# supabase local (quando inicializado)
+### Supabase local (quando inicializado — T020+)
+```bash
 npx supabase start
 npx supabase db reset
 ```
