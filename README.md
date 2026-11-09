@@ -105,10 +105,29 @@ Após criar usuários no Auth (Studio/local), vincule perfis em `public.profiles
 
 Validação SQL de referência (RNF01): `supabase/tests/rf01_rf04_permission_checks.sql`.
 
-## Estado implementado (nesta entrega)
-- **Supabase (RF01–RF04 base):** schema/migrations para `profiles`, `categories`, `departments`, `products`, `stock_balances`, `audit_events`; normalização de SKU/nome; RLS + helpers de perfil ativo/admin; políticas de leitura/escrita; trilha de auditoria em triggers (falha de auditoria aborta operação); RPC atômica `almox_create_product`; guards RN14/RN15 (saldo zero para inativar produto, categoria com produtos ativos, categoria inativa em produto, trava de unidade pós-primeiro movimento).
-- **Frontend (RF01/RF02):** rotas `/login`, `/recuperar-senha`, `/acesso-inativo`, `/configuracao`; contexto de sessão/perfil Supabase; guards de autenticação/papel (UI) e UX PT-BR com labels/erros/foco básico.
-- **Pendente (próximas tarefas):** UI de catálogo RF03/RF04 (T060–T074), testes automatizados DB/API (T080–T082), ajustes de lint warning shadcn, execução real dos checks de permissão em ambiente Supabase ativo.
+## Estado implementado
+- **RF01/RF02 (acesso):** rotas `/login`, `/recuperar-senha`, `/acesso-inativo`, `/configuracao`; sessão/perfil Supabase; guards UI (conveniência) + autorização no banco.
+- **RF03/RF04 (catálogo):** telas `/produtos`, `/categorias`, `/setores` (protegidas) com listagem, busca básica por nome/SKU (produtos), formulários Zod, confirmação antes de inativar, indicadores de situação; criação de produto usa RPC atômica com saldo zero; reativação/inativação respeitam erros de regra (RN15/RLS). Ações administrativas dependem de perfil `admin` no UI e no DB.
+- **Supabase:** migrations para `profiles`, `categories`, `departments`, `products`, `stock_balances`, `audit_events`; normalização SKU/nome; RLS/policies; auditoria por triggers (falha aborta operação); `almox_create_product`; guards RN14/RN15.
+- **Qualidade:** `npm run typecheck`, `npm run test` (Vitest), `npm run lint` (2 avisos não fatais fast-refresh), `npm run build` passam em `app/`. Testes automatizados DB completos (T080–T082) ainda dependem de harness/ambiente Supabase integrado.
+
+## Comandos (frontend em `app/`)
+```bash
+cd app
+npm install
+copy .env.example .env.local   # preencher VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY
+
+npm run dev
+npm run typecheck
+npm run test
+npm run lint
+npm run build
+```
+
+## Entrega/handoff
+- Demo manual: `docs/demo-rf01-rf04.md`
+- Interfaces para RF05–RF06: `docs/rf05-rf06-handoff.md`
+- Checks SQL RNF01: `supabase/tests/rf01_rf04_permission_checks.sql`
 
 ## Segurança e dados
 - Sem cadastro público; perfis controlados administrativamente.

@@ -8,6 +8,9 @@ import { PublicOnly, RequireAuth } from "@/modules/access/guards";
 import { InactiveAccessPage, MisconfiguredPage } from "@/modules/access/pages/AccessStatusPages";
 import { LoginPage } from "@/modules/access/pages/LoginPage";
 import { RecoverPasswordPage } from "@/modules/access/pages/RecoverPasswordPage";
+import { CategoriesPage } from "@/modules/catalog/pages/CategoriesPage";
+import { DepartmentsPage } from "@/modules/catalog/pages/DepartmentsPage";
+import { ProductsPage } from "@/modules/catalog/pages/ProductsPage";
 
 const queryClient = new QueryClient();
 
@@ -19,11 +22,14 @@ function Nav() {
         <a href="/" className="text-lg font-semibold tracking-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2">
           ALMOX
         </a>
-        <nav aria-label="Principal" className="flex items-center gap-2 text-sm">
+        <nav aria-label="Principal" className="flex flex-wrap items-center gap-2 text-sm">
           <NavLink to="/" end className={({ isActive }) => `rounded px-2 py-1 ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-100"}`}>Início</NavLink>
           {status === "authenticated" ? (
             <>
-              <span className="hidden px-2 text-gray-600 sm:inline">{profile?.display_name} ({profile?.role})</span>
+              <NavLink to="/produtos" className={({ isActive }) => `rounded px-2 py-1 ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-100"}`}>Produtos</NavLink>
+              <NavLink to="/categorias" className={({ isActive }) => `rounded px-2 py-1 ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-100"}`}>Categorias</NavLink>
+              <NavLink to="/setores" className={({ isActive }) => `rounded px-2 py-1 ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-100"}`}>Setores</NavLink>
+              <span className="hidden px-2 text-gray-600 lg:inline">{profile?.display_name} ({profile?.role})</span>
               <button type="button" className="rounded px-2 py-1 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" onClick={() => void signOut()}>Sair</button>
             </>
           ) : (
@@ -77,6 +83,9 @@ export default function App() {
               <Route path="/acesso-inativo" element={<InactiveAccessPage />} />
               <Route path="/login" element={<PublicOnly><LoginPage /></PublicOnly>} />
               <Route path="/recuperar-senha" element={<PublicOnly><RecoverPasswordPage /></PublicOnly>} />
+              <Route path="/produtos" element={<RequireAuth><ProductsPage /></RequireAuth>} />
+              <Route path="/categorias" element={<RequireAuth><CategoriesPage /></RequireAuth>} />
+              <Route path="/setores" element={<RequireAuth><DepartmentsPage /></RequireAuth>} />
               <Route path="/app" element={<RequireAuth><HomePage /></RequireAuth>} />
             </Routes>
           </Shell>
