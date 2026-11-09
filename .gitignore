@@ -1,0 +1,18 @@
+# Local planning/agent scratch files (requested)
+PLAN.md
+TASKS.md
+CONTEXT.md
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Node / web (future implementation)
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
