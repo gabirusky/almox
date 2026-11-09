@@ -94,11 +94,21 @@ npm run lint
 npm run build
 ```
 
-### Supabase local (quando inicializado — T020+)
+### Supabase local (T020+)
+Requer Supabase CLI e runtime compatível (Docker, conforme setup local).
 ```bash
 npx supabase start
-npx supabase db reset
+npx supabase db reset   # aplica migrations + supabase/seed.sql
 ```
+
+Após criar usuários no Auth (Studio/local), vincule perfis em `public.profiles` (ver `supabase/seed.sql`). Cadastro público está desabilitado (`enable_signup=false`).
+
+Validação SQL de referência (RNF01): `supabase/tests/rf01_rf04_permission_checks.sql`.
+
+## Estado implementado (nesta entrega)
+- **Supabase (RF01–RF04 base):** schema/migrations para `profiles`, `categories`, `departments`, `products`, `stock_balances`, `audit_events`; normalização de SKU/nome; RLS + helpers de perfil ativo/admin; políticas de leitura/escrita; trilha de auditoria em triggers (falha de auditoria aborta operação); RPC atômica `almox_create_product`; guards RN14/RN15 (saldo zero para inativar produto, categoria com produtos ativos, categoria inativa em produto, trava de unidade pós-primeiro movimento).
+- **Frontend (RF01/RF02):** rotas `/login`, `/recuperar-senha`, `/acesso-inativo`, `/configuracao`; contexto de sessão/perfil Supabase; guards de autenticação/papel (UI) e UX PT-BR com labels/erros/foco básico.
+- **Pendente (próximas tarefas):** UI de catálogo RF03/RF04 (T060–T074), testes automatizados DB/API (T080–T082), ajustes de lint warning shadcn, execução real dos checks de permissão em ambiente Supabase ativo.
 
 ## Segurança e dados
 - Sem cadastro público; perfis controlados administrativamente.
