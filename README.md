@@ -2,7 +2,7 @@
 
 Sistema web para controle interno de estoque com rastreabilidade (autor, data/hora do servidor, motivo e efeito de cada operação), perfis `admin`/`employee` e regras de consistência aplicadas no banco.
 
-> **Status:** análise concluída; base implementada até **RF07** (acesso, catálogo, consulta, saldo/histórico e entrada atômica). Último commit: `chore(supabase): ignore cli metadata` (`supabase/.temp/`). Documento-fonte: `Análise de Requisitos e Arquitetura de Software.md`.
+> **Status:** análise concluída; base implementada até **RF07** (acesso, catálogo, consulta, saldo/histórico e entrada atômica). Último commit de docs/estado: `1bc5437` — `update: docs, README and handoff md to reflect implementation status up to RF07` (arquivos: `README.md`, `app/README.md`, `docs/rf05-rf06-handoff.md`). Documento-fonte: `Análise de Requisitos e Arquitetura de Software.md`.
 
 ## Objetivo (MVP)
 Consulta confiável de saldo, movimentações rastreáveis e correções auditáveis em um único almoxarifado (escopo analisado RF01–RF16). Fora do MVP: multi-depósito, compras/fiscal, patrimônio individual, lotes/séries, anexos, aprovações, offline, ERP.
@@ -113,8 +113,11 @@ npx supabase db reset   # aplica migrations + supabase/seed.sql
 ```
 
 - `supabase/config.toml` desabilita cadastro público (`enable_signup=false`).
-- Após criar usuários no Auth (Studio/local), vincular perfis ativos em `public.profiles` (ver `supabase/seed.sql`).
-- Metadados locais do CLI são ignorados: `supabase/.temp/` (commit recente).
+- `supabase/seed.sql` inclui **mock users/profiles persistentes (local/dev)**, recriados a cada `db reset`:
+  - `admin@almox.test` / `Test1234!` (`admin`, ativo)
+  - `operador@almox.test` / `Test1234!` (`employee`, ativo)
+  - também semeia categorias/setores de referência
+- Metadados locais do CLI são ignorados: `supabase/.temp/` (commit `26d6cf3`).
 - Validação SQL de referência (RNF01/RF01–RF04): `supabase/tests/rf01_rf04_permission_checks.sql`.
 
 ## Migrations Supabase (ordem no repositório)
@@ -131,12 +134,7 @@ npx supabase db reset   # aplica migrations + supabase/seed.sql
 
 ## Docs de apoio
 - Demo manual RF01–RF04: `docs/demo-rf01-rf04.md`
-- Handoff RF05–RF06 (histórico): `docs/rf05-rf06-handoff.md`
-- Checks SQL: `supabase/tests/rf01_rf04_permission_checks.sql`
-
-## Entrega/handoff
-- Demo manual: `docs/demo-rf01-rf04.md`
-- Interfaces para RF05–RF06: `docs/rf05-rf06-handoff.md`
+- Handoff RF05–RF06 (histórico/estado atual): `docs/rf05-rf06-handoff.md`
 - Checks SQL RNF01: `supabase/tests/rf01_rf04_permission_checks.sql`
 
 ## Segurança e dados
@@ -144,7 +142,8 @@ npx supabase db reset   # aplica migrations + supabase/seed.sql
 - Chaves secretas/`service_role` **nunca** no frontend ou repositório.
 - Operações críticas validadas no banco; UI não é fonte de autorização.
 - Autor/data de domínio vêm de sessão/servidor (RN13).
+- Metadados locais Supabase CLI ignorados: `supabase/.temp/` (commit `26d6cf3`).
 
 ## Planejamento
 - `PLAN.md` / `TASKS.md` / `CONTEXT.md` — apoio local do agente (gitignored).
-- Próximas entregas seguem análise: E1 acesso/consulta inicial, E2 manutenção de catálogo (RF01–RF04), depois RF05+.
+- Próximas entregas seguem análise: RF08+ (movimentações adicionais, auditoria/consultas ampliadas, correções/rastreabilidade conforme backlog).

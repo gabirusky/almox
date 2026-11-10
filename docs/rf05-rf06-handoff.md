@@ -1,6 +1,6 @@
 # Handoff RF05–RF06 (histórico / estado atual)
 
-> **Status:** RF05 e RF06 implementados no código/migrations atuais; este documento registra o que foi entregue e pontos de continuidade para RF08+.
+> **Status:** RF05 e RF06 implementados no código/migrations atuais; documento alinhado ao commit `1bc5437` (`update: docs, README and handoff md to reflect implementation status up to RF07`). Registra entregas e continuidade para RF08+.
 
 ## Base entregue
 - **RF01–RF04:** auth/perfis/guards + catálogo (`categories`, `departments`, `products`, `stock_balances`, `audit_events`), RPC `almox_create_product`, regras RLS/RN14/RN15.
