@@ -113,6 +113,26 @@ export async function getProductHistory(productId: string, page = 1, pageSize = 
   };
 }
 
+export async function registerEntry(input: {
+  productId: string;
+  quantity: string;
+  origin: string;
+  reason: string;
+  documentRef?: string;
+  operationKey: string;
+}) {
+  const { data, error } = await supabase.rpc("almox_register_entry", {
+    p_product_id: input.productId,
+    p_quantity: input.quantity,
+    p_origin: input.origin,
+    p_reason: input.reason,
+    p_document_ref: input.documentRef || null,
+    p_operation_key: input.operationKey,
+  });
+  if (error) throw error;
+  return data as { product_id: string; quantity: number | string; balance: number | string; version: number; kind: "ENTRADA" };
+}
+
 export async function createProduct(values: ProductFormValues) {
   const { error } = await supabase.rpc("almox_create_product", {
     p_sku: values.sku,

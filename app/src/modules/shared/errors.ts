@@ -14,6 +14,15 @@ export function getErrorMessage(error: unknown, fallback = "Ocorreu um erro ines
   if (message.includes("categories_name_normalized_uidx") || (message.includes("duplicate key") && message.toLowerCase().includes("categories"))) return "Já existe uma categoria com este nome.";
   if (message.includes("departments_name_normalized_uidx") || (message.includes("duplicate key") && message.toLowerCase().includes("departments"))) return "Já existe um setor com este nome.";
   if (message.includes("violates row-level security")) return "Operação bloqueada pelas regras de acesso.";
+  if (message.includes("ENTRY_QUANTITY_MUST_BE_POSITIVE")) return "Informe uma quantidade positiva.";
+  if (message.includes("ENTRY_QUANTITY_PRECISION_EXCEEDED")) return "A quantidade pode ter no máximo três casas decimais.";
+  if (message.includes("ENTRY_QUANTITY_MUST_BE_INTEGER")) return "A unidade deste produto exige uma quantidade inteira.";
+  if (message.includes("ENTRY_ORIGIN_REQUIRED")) return "Informe a origem da entrada.";
+  if (message.includes("ENTRY_REASON_REQUIRED")) return "Informe o motivo da entrada.";
+  if (message.includes("PRODUCT_INACTIVE")) return "Produto inativo não aceita movimentações.";
+  if (message.includes("PRODUCT_NOT_FOUND")) return "Produto não encontrado.";
+  if (message.includes("OPERATION_KEY_REUSED_WITH_DIFFERENT_CONTENT")) return "A chave da operação já foi usada com outros dados.";
+  if (message.includes("ACTIVE_PROFILE_REQUIRED")) return "Sua sessão não está ativa para realizar esta operação.";
   if (message.includes("Failed to fetch") || message.includes("NetworkError")) return "Falha de conexão. Verifique sua rede e tente novamente.";
   return fallback;
 }
