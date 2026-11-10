@@ -11,7 +11,7 @@ import { useAuth } from "@/modules/access/use-auth";
 import { ConfirmAction } from "@/modules/shared/components/ConfirmAction";
 import { getErrorMessage } from "@/modules/shared/errors";
 import { balanceQuantity, createProduct, listCategories, listProducts, setProductActive, updateProduct } from "../services/catalog-api";
-import type { Product, ProductFormValues } from "../types";
+import type { Product, ProductFormValues, ProductSituation, ProductSort } from "../types";
 
 const schema = z.object({
   sku: z.string().trim().min(1, "Informe o SKU.").max(64),
@@ -46,13 +46,22 @@ export function ProductsPage() {
   const isAdmin = profile?.role === "admin";
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [situation, setSituation] = useState<ProductSituation>("all");
+  const [sort, setSort] = useState<ProductSort>("name");
+  const [direction, setDirection] = useState<"asc" | "desc">("asc");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
   const [editing, setEditing] = useState<Product | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const categories = useQuery({ queryKey: ["categories"], queryFn: listCategories });
   const activeCategories = useMemo(() => (categories.data ?? []).filter((c) => c.active), [categories.data]);
-  const products = useQuery({ queryKey: ["products", search], queryFn: () => listProducts(search) });
+  const products = useQuery({
+    queryKey: ["products", { search, categoryId, situation, sort, direction, page, pageSize }],
+    queryFn: () => listProducts({ search, categoryId, situation, sort, direction, page, pageSize }),
+  });
 
   const form = useForm<Values>({ resolver: zodResolver(schema), values: toFormValues(editing) });
 
@@ -151,7 +160,27 @@ export function ProductsPage() {
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <Label htmlFor="search" className="sr-only">Buscar por nome ou SKU</Label>
-        <Input id="search" placeholder="Buscar por nome ou SKU" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-md" />
+        <Input id="search" placeholder="Buscar por nome ou SKU" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="max-w-md" />
+        <Label htmlFor="category-filter" className="sr-only">Filtrar por categoria</Label>
+        <select id="category-filter" className="h-9 rounded-md border border-input bg-white px-3 text-sm" value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setPage(1); }}>
+          <option value="">Todas as categorias</option>
+          {activeCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+        </select>
+        <Label htmlFor="situation-filter" className="sr-only">Filtrar por situação</Label>
+        <select id="situation-filter" className="h-9 rounded-md border border-input bg-white px-3 text-sm" value={situation} onChange={(e) => { setSituation(e.target.value as ProductSituation); setPage(1); }}>
+          <option value="all">Todas as situações</option>
+          <option value="active">Ativos</option>
+          <option value="inactive">Inativos</option>
+          <option value="zero_balance">Sem saldo</option>
+        </select>
+        <Label htmlFor="sort-filter" className="sr-only">Ordenar produtos</Label>
+        <select id="sort-filter" className="h-9 rounded-md border border-input bg-white px-3 text-sm" value={`${sort}:${direction}`} onChange={(e) => { const [nextSort, nextDirection] = e.target.value.split(":") as [ProductSort, "asc" | "desc"]; setSort(nextSort); setDirection(nextDirection); setPage(1); }}>
+          <option value="name:asc">Nome (A–Z)</option>
+          <option value="name:desc">Nome (Z–A)</option>
+          <option value="sku:asc">SKU (crescente)</option>
+          <option value="updated_at:desc">Atualizados recentemente</option>
+        </select>
+        <button type="button" className="rounded px-2 py-1 text-sm underline focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" onClick={() => { setSearch(""); setCategoryId(""); setSituation("all"); setSort("name"); setDirection("asc"); setPage(1); }}>Limpar filtros</button>
       </div>
 
       <div className="overflow-x-auto rounded-lg border bg-white">
@@ -161,7 +190,7 @@ export function ProductsPage() {
           <table className="min-w-full text-left text-sm">
             <thead className="border-b bg-gray-50"><tr><th className="px-4 py-2 font-medium">SKU</th><th className="px-4 py-2 font-medium">Nome</th><th className="px-4 py-2 font-medium">Categoria</th><th className="px-4 py-2 font-medium">Saldo</th><th className="px-4 py-2 font-medium">Situação</th>{isAdmin ? <th className="px-4 py-2 font-medium">Ações</th> : null}</tr></thead>
             <tbody>
-              {(products.data ?? []).map((item) => {
+              {(products.data?.items ?? []).map((item) => {
                 const qty = balanceQuantity(item);
                 return (
                   <tr key={item.id} className="border-b last:border-0">
@@ -181,11 +210,21 @@ export function ProductsPage() {
                   </tr>
                 );
               })}
-              {(products.data ?? []).length === 0 ? <tr><td className="px-4 py-4 text-gray-600" colSpan={isAdmin ? 6 : 5}>Nenhum produto encontrado.</td></tr> : null}
+              {(products.data?.items ?? []).length === 0 ? <tr><td className="px-4 py-4 text-gray-600" colSpan={isAdmin ? 6 : 5}>Nenhum produto encontrado para os filtros informados.</td></tr> : null}
             </tbody>
           </table>
         ) : null}
       </div>
+      {!products.isLoading && !products.error && products.data ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm" aria-label="Paginação de produtos">
+          <p className="text-gray-600">{products.data.total === 0 ? "Nenhum resultado" : `Mostrando ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, products.data.total)} de ${products.data.total}`}</p>
+          <div className="flex items-center gap-2">
+            <Button type="button" size="sm" variant="outline" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={page === 1 || products.isFetching}>Anterior</Button>
+            <span>Página {page} de {Math.max(1, Math.ceil(products.data.total / pageSize))}</span>
+            <Button type="button" size="sm" variant="outline" onClick={() => setPage((current) => current + 1)} disabled={page >= Math.max(1, Math.ceil(products.data.total / pageSize)) || products.isFetching}>Próxima</Button>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

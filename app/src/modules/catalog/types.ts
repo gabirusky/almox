@@ -49,3 +49,23 @@ export interface ProductFormValues {
   minimum_stock: number;
   location: string;
 }
+
+export type ProductSituation = "all" | "active" | "inactive" | "zero_balance";
+export type ProductSort = "name" | "sku" | "updated_at" | "active";
+
+export interface ProductListFilters {
+  search?: string;
+  categoryId?: string;
+  situation?: ProductSituation;
+  page?: number;
+  pageSize?: number;
+  sort?: ProductSort;
+  direction?: "asc" | "desc";
+}
+
+export interface PaginatedProducts {
+  items: Product[];
+  total: number;
+  page: number;
+  pageSize: number;
+}

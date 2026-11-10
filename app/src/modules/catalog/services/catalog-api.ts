@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import type { Category, Department, Product, ProductFormValues } from "../types";
+import type { Category, Department, PaginatedProducts, Product, ProductFormValues, ProductListFilters } from "../types";
 
 export async function listCategories() {
   const { data, error } = await supabase.from("categories").select("*").order("active", { ascending: false }).order("name");
@@ -47,17 +47,35 @@ export async function setDepartmentActive(id: string, active: boolean) {
   if (error) throw error;
 }
 
-export async function listProducts(search = "") {
+export async function listProducts(filters: ProductListFilters = {}): Promise<PaginatedProducts> {
+  const page = Math.max(1, filters.page ?? 1);
+  const pageSize = Math.min(100, Math.max(1, filters.pageSize ?? 10));
+  const sort = filters.sort ?? "name";
+  const direction = filters.direction ?? "asc";
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
   let query = supabase
     .from("products")
-    .select("*, categories(id,name,active), stock_balances(product_id,quantity,version,updated_at)")
-    .order("active", { ascending: false })
-    .order("name");
-  const term = search.trim();
+    .select("*, categories(id,name,active), stock_balances(product_id,quantity,version,updated_at)", { count: "exact" })
+    .order(sort, { ascending: direction === "asc" })
+    .order("id", { ascending: true })
+    .range(from, to);
+  const term = filters.search?.trim();
   if (term) query = query.or(`name.ilike.%${term}%,sku.ilike.%${term}%`);
-  const { data, error } = await query;
+  if (filters.categoryId) query = query.eq("category_id", filters.categoryId);
+  if (filters.situation === "active") query = query.eq("active", true);
+  if (filters.situation === "inactive") query = query.eq("active", false);
+  if (filters.situation === "zero_balance") query = query.lte("stock_balances.quantity", 0);
+
+  const { data, error, count } = await query;
   if (error) throw error;
-  return (data ?? []) as Product[];
+  return {
+    items: (data ?? []) as Product[],
+    total: count ?? 0,
+    page,
+    pageSize,
+  };
 }
 
 export async function createProduct(values: ProductFormValues) {
