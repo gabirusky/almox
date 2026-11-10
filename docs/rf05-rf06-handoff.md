@@ -1,24 +1,19 @@
-# Handoff RF05–RF06 (T091)
+# Handoff RF05–RF06 (histórico / estado atual)
 
-## Dependências já entregues (RF01–RF04)
-- Auth/session + `profiles` (`admin`/`employee`, `active`) e guards de rota; **autorização final sempre no banco**.
-- Catálogo: `categories`, `departments`, `products`, `stock_balances` (saldo atual/materializado), `audit_events`.
-- RPC: `public.almox_create_product(...)` cria produto + saldo zero atomicamente.
-- Regras DB ativas: SKU normalizado único (RN14), inativação produto só com saldo zero, categoria com produtos ativos não inativa (RN15), categoria de produto deve estar ativa.
+> **Status:** RF05 e RF06 implementados no código/migrations atuais; este documento registra o que foi entregue e pontos de continuidade para RF08+.
 
-## RF05 — Consulta de produtos
-- **Necessidade:** busca por nome/SKU/categoria/situação com paginação.
-- **Sugestão de API:** query PostgREST paginada (`range`/`count=exact`) ou RPC dedicada com filtros whitelisted; manter RLS.
-- **Índices existentes:** SKU, nome, `category_id+active`, `active`. Avaliar `pg_trgm` apenas se busca textual exigir.
-- **UI:** diferenciar ativo/inativo/sem saldo (já há base em `ProductsPage`); adicionar paginação/ordenação estável.
+## Base entregue
+- **RF01–RF04:** auth/perfis/guards + catálogo (`categories`, `departments`, `products`, `stock_balances`, `audit_events`), RPC `almox_create_product`, regras RLS/RN14/RN15.
+- **RF05 (consulta):** `ProductsPage` com busca (nome/SKU), filtros (categoria/situação), ordenação e paginação via `listProducts`.
+- **RF06 (saldo/histórico):** `ProductDetailsPage` (`/produtos/:id`) exibe saldo atual e histórico paginado; migration `20261110190000_t094_t098_rf06_stock_history.sql` cria base de `stock_movements`/leitura histórica.
+- **RF07 (já iniciado/entregue após este handoff):** rota `/movimentacoes/nova` + RPC `almox_register_entry` e `stock_commands` (idempotência) em `20261110191000_t121_t128_rf07_entries.sql`.
 
-## RF06 — Saldo atual e histórico por produto
-- **Necessidade:** tela/detalhe com unidade, saldo, última atualização e lançamentos em ordem verificável.
-- **Schema futuro:** `stock_movements` (ou equivalente da análise, seção 11) com `product_id`, `kind/delta`, saldos anterior/posterior, versão, autor, motivo/origem/destino, vínculo de estorno, `recorded_at`.
-- **Contrato sugerido:** endpoint/RPC `get_product_history(product_id, filters, page)` retornando saldo atual (`stock_balances`) + movimentos paginados ordenados por `(product_version asc, recorded_at asc, id asc)`.
-- **Integração:** ao registrar movimentos (RF07–RF10), atualizar `stock_balances` na mesma transação e auditar; manter `first_movement_at`/trava de unidade (RN14).
+## Interfaces/áreas relevantes
+- UI: `app/src/modules/catalog/pages/ProductsPage.tsx`, `ProductDetailsPage.tsx`, `NewEntryPage.tsx`
+- API cliente: `app/src/modules/catalog/services/catalog-api.ts`
+- DB: migrations em `supabase/migrations/` (ver `README.md` raiz para ordem)
 
-## Cuidados para o próximo slice
-- Não expor `service_role` no frontend; comandos críticos via RLS/RPC/Edge Function apropriada.
-- Manter idempotência de comandos de movimentação (RF13/RN16) separada de consultas.
-- Preservar snapshots/rótulos históricos nos movimentos (análise 11.2) para não reescrever fatos passados.
+## Próximos slices (sugestão)
+- **RF08–RF10:** saídas/ajustes/estornos e demais comandos de movimentação sobre `stock_movements` + atualização consistente de saldo.
+- **RF11–RF13+:** ampliar auditoria operacional, validações de concorrência/idempotência e relatórios conforme análise.
+- Manter autorização no banco, snapshots históricos imutáveis e sem `service_role` no frontend.

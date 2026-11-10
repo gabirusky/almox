@@ -1,6 +1,6 @@
 # ALMOX — App (frontend)
 
-Aplicação React + TypeScript + Vite para o recorte **RF01–RF04** do projeto ALMOX.
+Frontend React + TypeScript + Vite do ALMOX (estado atual: até **RF07** — acesso, catálogo, consulta, saldo/histórico e entrada atômica).
 
 ## Requisitos
 - Node.js 20+ (recomendado 22 LTS)
@@ -15,11 +15,17 @@ Aplicação React + TypeScript + Vite para o recorte **RF01–RF04** do projeto 
 npm install
 npm run dev
 npm run typecheck
+npm run test
 npm run lint
 npm run build
 ```
 
-## Stack (scaffold)
-React 19, Vite 8, TypeScript 7 (strict), React Router 7, TanStack Query 5, React Hook Form 7, Zod 4, Supabase JS 2, Tailwind CSS 4, shadcn/ui (base). Lint: `oxlint` (template Vite). 
+## Stack
+React 19, Vite 8, TypeScript ~7 (strict), React Router 8, TanStack Query 5, React Hook Form 7, Zod 4, Supabase JS 2, Tailwind CSS 4, shadcn/ui. Testes: Vitest + Testing Library. Lint: `oxlint`.
 
-Consulte o `../README.md` para escopo RF/NFR e decisões de arquitetura.
+## Estrutura relevante
+- `src/modules/access/` — autenticação, sessão/perfil, guards
+- `src/modules/catalog/` — produtos, categorias, setores, detalhe/histórico, nova entrada
+- `src/modules/shared/` — erros e componentes compartilhados
+
+Consulte `../README.md` para escopo, migrations Supabase e notas de segurança.

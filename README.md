@@ -2,19 +2,22 @@
 
 Sistema web para controle interno de estoque com rastreabilidade (autor, data/hora do servidor, motivo e efeito de cada operação), perfis `admin`/`employee` e regras de consistência aplicadas no banco.
 
-> **Status:** análise concluída; implementação iniciada pelo recorte **RF01–RF04** (este responsável). Documento-fonte: `Análise de Requisitos e Arquitetura de Software.md`.
+> **Status:** análise concluída; base implementada até **RF07** (acesso, catálogo, consulta, saldo/histórico e entrada atômica). Último commit: `chore(supabase): ignore cli metadata` (`supabase/.temp/`). Documento-fonte: `Análise de Requisitos e Arquitetura de Software.md`.
 
 ## Objetivo (MVP)
-Permitir consulta confiável de saldo, movimentações rastreáveis e correções auditáveis em um único almoxarifado, conforme escopo da análise (RF01–RF16 planejados; fora do MVP: multi-depósito, compras/fiscal, patrimônio individual, lotes/séries, anexos, aprovações, offline, ERP).
+Consulta confiável de saldo, movimentações rastreáveis e correções auditáveis em um único almoxarifado (escopo analisado RF01–RF16). Fora do MVP: multi-depósito, compras/fiscal, patrimônio individual, lotes/séries, anexos, aprovações, offline, ERP.
 
-## Escopo desta implementação (RF01–RF04)
+## Escopo implementado (estado atual)
 
 | ID | Prioridade | Requisito | Estado |
 |---|---|---|---|
-| RF01 | P0 | Autenticar usuários (e-mail/senha), sessão e recuperação de senha | planejado |
-| RF02 | P0 | Permissões `admin`/`employee` em toda operação protegida (UI + API/DB) | planejado |
-| RF03 | P0 | Produtos: cadastrar/consultar/editar/inativar (lógico), SKU único normalizado, saldo inicial 0, auditoria de alterações | planejado |
-| RF04 | P0 | Categorias e setores: manutenção administrativa, referências históricas preservadas, inativos não selecionáveis em novas operações | planejado |
+| RF01 | P0 | Autenticação (e-mail/senha), sessão, recuperação de senha | implementado (base) |
+| RF02 | P0 | Permissões `admin`/`employee` em operações protegidas (UI + DB/RLS) | implementado (base) |
+| RF03 | P0 | Produtos: cadastrar/consultar/editar/inativar (lógico), SKU único normalizado, saldo inicial 0, auditoria | implementado |
+| RF04 | P0 | Categorias e setores: manutenção admin, referências preservadas, inativos não selecionáveis em novas operações | implementado |
+| RF05 | P0 | Consulta de produtos: busca/filtros, situação, ordenação e paginação | implementado |
+| RF06 | P0 | Detalhe do produto: saldo atual e histórico de movimentações paginado/ordenado | implementado (base de leitura/histórico) |
+| RF07 | P0 | Entrada de estoque atômica, auditável e idempotente | implementado |
 
 ## Requisitos não funcionais atrelados (RF01–RF04)
 
@@ -31,87 +34,66 @@ Permitir consulta confiável de saldo, movimentações rastreáveis e correçõe
 | RNF09 Recuperação | Sem garantias no protótipo; validar backup/restore antes de uso real. |
 | RNF10 Privacidade/observabilidade | Mínimo de dados; sem senhas/tokens/chaves em logs/cliente. |
 
-## Arquitetura proposta
-- **Frontend:** React + TypeScript + Vite; Tailwind CSS + shadcn/ui; React Router; TanStack Query; React Hook Form + Zod.
+## Arquitetura
+- **Frontend:** React 19 + TypeScript + Vite 8 (`app/`), Tailwind CSS 4, shadcn/ui, React Router, TanStack Query, React Hook Form + Zod.
 - **Backend (BaaS):** Supabase Auth + PostgreSQL + PostgREST/RPC.
-- **Regras críticas:** RLS, constraints, funções/triggers no PostgreSQL (fonte de verdade para autorização e invariantes). Frontend usa apenas chave publicável/anon + JWT do usuário; **nunca** `service_role` no cliente.
+- **Regras críticas:** RLS, constraints, funções/triggers/RPC no PostgreSQL (fonte de verdade para autorização e invariantes). Frontend usa apenas chave publicável/anon + JWT; **nunca** `service_role` no cliente.
 
-## Stack e versões (decisão inicial — T003)
+## Stack (atual, `app/package.json`)
+| Componente | Versão |
+|---|---|
+| Node.js | 20+ (recomendado 22 LTS) |
+| npm | 10+ |
+| React | 19.x |
+| TypeScript | ~7.x (`strict`, configs app/node) |
+| Vite | 8.x |
+| React Router | 8.x |
+| TanStack Query | 5.x |
+| React Hook Form / @hookform/resolvers | 7.x / 7.x |
+| Zod | 4.x |
+| @supabase/supabase-js | 2.x |
+| Tailwind CSS | 4.x |
+| Vitest / Testing Library | 5.x / 16.x |
 
-| Componente | Versão alvo (fixar em `package.json`/lockfile no scaffold) | Observação |
-|---|---|---|
-| Node.js | 20 LTS (mín.) / 22 LTS recomendado | Alinhar com CI/equipe |
-| npm | 10+ | Ou pnpm equivalente, se o grupo padronizar |
-| React | 19.x | Fixar versão exata ao scaffold |
-| TypeScript | 5.9.x (strict) | `strict: true`, `noUncheckedIndexedAccess` recomendado |
-| Vite | 7.x (ou estável vigente no scaffold) | Template React + TS |
-| React Router | 7.x | Rotas protegidas |
-| TanStack Query | 5.x | Cache/mutações |
-| React Hook Form | 7.x | Formulários |
-| Zod | 3.x ou 4.x (definir no scaffold) | Validação cliente + esquemas |
-| @supabase/supabase-js | 2.x | Cliente Auth/Data API |
-| Supabase CLI | estável vigente (fixar via `npx`/devDependency) | Migrações locais/remotas |
-| PostgreSQL (Supabase) | 15+ (gerenciado) | `NUMERIC(14,3)` para quantidades/saldos |
-
-> As versões exatas serão **congeladas** no primeiro scaffold (`package.json` + lockfile) e registradas aqui.
-
-## Estrutura planejada
+## Estrutura
 ```text
-app/                    # frontend (a criar no scaffold)
-  src/modules/
-    access/             # RF01/RF02
-    catalog/            # RF03/RF04
-    audit/              # leitura/admin (futuro)
-    shared/
+app/
+  src/
+    components/ui/        # base shadcn/ui
+    modules/
+      access/             # RF01/RF02 (auth, guards, perfis/sessão)
+      catalog/            # RF03–RF07 (produtos, categorias, setores, detalhe, entrada)
+      shared/             # erros, confirmações, utilitários comuns
 supabase/
-  migrations/           # SQL versionado (schema, RLS, funções, triggers)
-  seed.sql              # dados fictícios reproduzíveis
+  migrations/             # SQL versionado (schema, RLS, auditoria, domínio, histórico, entradas)
+  seed.sql                # dados fictícios reproduzíveis
+  tests/                  # checks SQL de referência
+docs/                     # handoffs e roteiros de demo
 ```
 
-## Configuração local (placeholder — completar no scaffold)
+## Rotas principais (`app/src/App.tsx`)
+- `/` — início
+- `/login`, `/recuperar-senha`, `/acesso-inativo`, `/configuracao` — acesso/estado
+- `/produtos`, `/produtos/:id` — consulta, cadastro/edição/inativação (admin), saldo e histórico
+- `/movimentacoes/nova` — registro de entrada (RF07)
+- `/categorias`, `/setores` — manutenção administrativa
+- `/app` — área autenticada (alias/home protegida)
+
+## Configuração local
 
 ### Pré-requisitos
 - Node.js 20+ e npm
-- Supabase CLI (ou Docker para stack local, conforme docs Supabase)
+- Supabase CLI + runtime compatível (ex.: Docker) para stack local
 
 ### Variáveis de ambiente
-Copiar `.env.example` para `.env.local` (não commitar):
+Copiar `app/.env.example` para `app/.env.local` (não commitar):
 
 ```env
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 ```
 
-### Comandos (frontend em `app/`)
-```bash
-cd app
-npm install
-copy .env.example .env.local   # preencher VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY
-
-npm run dev
-npm run typecheck
-npm run lint
-npm run build
-```
-
-### Supabase local (T020+)
-Requer Supabase CLI e runtime compatível (Docker, conforme setup local).
-```bash
-npx supabase start
-npx supabase db reset   # aplica migrations + supabase/seed.sql
-```
-
-Após criar usuários no Auth (Studio/local), vincule perfis em `public.profiles` (ver `supabase/seed.sql`). Cadastro público está desabilitado (`enable_signup=false`).
-
-Validação SQL de referência (RNF01): `supabase/tests/rf01_rf04_permission_checks.sql`.
-
-## Estado implementado
-- **RF01/RF02 (acesso):** rotas `/login`, `/recuperar-senha`, `/acesso-inativo`, `/configuracao`; sessão/perfil Supabase; guards UI (conveniência) + autorização no banco.
-- **RF03/RF04 (catálogo):** telas `/produtos`, `/categorias`, `/setores` (protegidas) com listagem, busca básica por nome/SKU (produtos), formulários Zod, confirmação antes de inativar, indicadores de situação; criação de produto usa RPC atômica com saldo zero; reativação/inativação respeitam erros de regra (RN15/RLS). Ações administrativas dependem de perfil `admin` no UI e no DB.
-- **Supabase:** migrations para `profiles`, `categories`, `departments`, `products`, `stock_balances`, `audit_events`; normalização SKU/nome; RLS/policies; auditoria por triggers (falha aborta operação); `almox_create_product`; guards RN14/RN15.
-- **Qualidade:** `npm run typecheck`, `npm run test` (Vitest), `npm run lint` (2 avisos não fatais fast-refresh), `npm run build` passam em `app/`. Testes automatizados DB completos (T080–T082) ainda dependem de harness/ambiente Supabase integrado.
-
-## Comandos (frontend em `app/`)
+### Frontend (`app/`)
 ```bash
 cd app
 npm install
@@ -123,6 +105,34 @@ npm run test
 npm run lint
 npm run build
 ```
+
+### Supabase local
+```bash
+npx supabase start
+npx supabase db reset   # aplica migrations + supabase/seed.sql
+```
+
+- `supabase/config.toml` desabilita cadastro público (`enable_signup=false`).
+- Após criar usuários no Auth (Studio/local), vincular perfis ativos em `public.profiles` (ver `supabase/seed.sql`).
+- Metadados locais do CLI são ignorados: `supabase/.temp/` (commit recente).
+- Validação SQL de referência (RNF01/RF01–RF04): `supabase/tests/rf01_rf04_permission_checks.sql`.
+
+## Migrations Supabase (ordem no repositório)
+- `20261109201907_t020_t029_rf01_rf04_schema.sql` — schema/base catálogo e perfis
+- `20261109201908_t030_t036_rls_audit.sql` — RLS e auditoria
+- `20261109201909_t040_t045_domain_logic.sql` — regras de domínio/RPC catálogo
+- `20261110190000_t094_t098_rf06_stock_history.sql` — histórico de movimentações (base RF06)
+- `20261110191000_t121_t128_rf07_entries.sql` — comandos/entrada atômica e idempotente (RF07)
+
+## Estado e notas
+- **Implementado:** RF01–RF07 (conforme rotas, serviços e migrations atuais). Autorização final no banco (RLS/RPC/constraints/triggers).
+- **Qualidade frontend:** scripts disponíveis `dev`, `build`, `typecheck`, `test`, `lint`. Cobertura automatizada de banco/harness integrado pode exigir ambiente Supabase específico.
+- **Privacidade/segredos:** sem `service_role` no frontend; sem senhas/tokens/chaves no repo.
+
+## Docs de apoio
+- Demo manual RF01–RF04: `docs/demo-rf01-rf04.md`
+- Handoff RF05–RF06 (histórico): `docs/rf05-rf06-handoff.md`
+- Checks SQL: `supabase/tests/rf01_rf04_permission_checks.sql`
 
 ## Entrega/handoff
 - Demo manual: `docs/demo-rf01-rf04.md`
