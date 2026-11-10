@@ -11,6 +11,7 @@ import { RecoverPasswordPage } from "@/modules/access/pages/RecoverPasswordPage"
 import { CategoriesPage } from "@/modules/catalog/pages/CategoriesPage";
 import { DepartmentsPage } from "@/modules/catalog/pages/DepartmentsPage";
 import { ProductsPage } from "@/modules/catalog/pages/ProductsPage";
+import { ProductDetailsPage } from "@/modules/catalog/pages/ProductDetailsPage";
 
 const queryClient = new QueryClient();
 
@@ -84,6 +85,7 @@ export default function App() {
               <Route path="/login" element={<PublicOnly><LoginPage /></PublicOnly>} />
               <Route path="/recuperar-senha" element={<PublicOnly><RecoverPasswordPage /></PublicOnly>} />
               <Route path="/produtos" element={<RequireAuth><ProductsPage /></RequireAuth>} />
+              <Route path="/produtos/:id" element={<RequireAuth><ProductDetailsPage /></RequireAuth>} />
               <Route path="/categorias" element={<RequireAuth><CategoriesPage /></RequireAuth>} />
               <Route path="/setores" element={<RequireAuth><DepartmentsPage /></RequireAuth>} />
               <Route path="/app" element={<RequireAuth><HomePage /></RequireAuth>} />

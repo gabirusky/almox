@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { Link } from "react-router";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -195,7 +196,7 @@ export function ProductsPage() {
                 return (
                   <tr key={item.id} className="border-b last:border-0">
                     <td className="px-4 py-2 font-mono text-xs">{item.sku}</td>
-                    <td className="px-4 py-2">{item.name}</td>
+                    <td className="px-4 py-2"><Link to={`/produtos/${item.id}`} className="underline decoration-gray-400 underline-offset-2 hover:decoration-gray-900">{item.name}</Link></td>
                     <td className="px-4 py-2">{item.categories?.name ?? "—"}</td>
                     <td className="px-4 py-2">{qty} {item.unit}</td>
                     <td className="px-4 py-2">

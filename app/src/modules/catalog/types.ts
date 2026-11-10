@@ -69,3 +69,38 @@ export interface PaginatedProducts {
   page: number;
   pageSize: number;
 }
+
+export type MovementKind = "ENTRADA" | "SAIDA" | "ABERTURA" | "AJUSTE" | "ESTORNO";
+
+export interface StockMovement {
+  id: string;
+  product_id: string;
+  actor_id: string | null;
+  kind: MovementKind;
+  delta: number | string;
+  balance_before: number | string;
+  balance_after: number | string;
+  product_version: number;
+  reason: string;
+  origin: string | null;
+  department_id: string | null;
+  recipient_ref: string | null;
+  document_ref: string | null;
+  reversal_of: string | null;
+  recorded_at: string;
+  snapshots: {
+    sku?: string;
+    name?: string;
+    unit?: ProductUnit;
+    actor_name?: string;
+    department_name?: string;
+  };
+}
+
+export interface ProductHistory {
+  product: Product;
+  movements: StockMovement[];
+  total: number;
+  page: number;
+  pageSize: number;
+}

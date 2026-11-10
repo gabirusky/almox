@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import type { Category, Department, PaginatedProducts, Product, ProductFormValues, ProductListFilters } from "../types";
+import type { Category, Department, PaginatedProducts, Product, ProductFormValues, ProductHistory, ProductListFilters, StockMovement } from "../types";
 
 export async function listCategories() {
   const { data, error } = await supabase.from("categories").select("*").order("active", { ascending: false }).order("name");
@@ -75,6 +75,41 @@ export async function listProducts(filters: ProductListFilters = {}): Promise<Pa
     total: count ?? 0,
     page,
     pageSize,
+  };
+}
+
+const productSelect = "*, categories(id,name,active), stock_balances(product_id,quantity,version,updated_at)";
+
+export async function getProduct(productId: string): Promise<Product> {
+  const { data, error } = await supabase.from("products").select(productSelect).eq("id", productId).maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("PRODUCT_NOT_FOUND");
+  return data as Product;
+}
+
+export async function getProductHistory(productId: string, page = 1, pageSize = 10): Promise<ProductHistory> {
+  const safePage = Math.max(1, page);
+  const safePageSize = Math.min(100, Math.max(1, pageSize));
+  const from = (safePage - 1) * safePageSize;
+  const to = from + safePageSize - 1;
+  const [product, movements] = await Promise.all([
+    getProduct(productId),
+    supabase
+      .from("stock_movements")
+      .select("*", { count: "exact" })
+      .eq("product_id", productId)
+      .order("product_version", { ascending: true })
+      .order("recorded_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  ]);
+  if (movements.error) throw movements.error;
+  return {
+    product,
+    movements: (movements.data ?? []) as StockMovement[],
+    total: movements.count ?? 0,
+    page: safePage,
+    pageSize: safePageSize,
   };
 }
 
