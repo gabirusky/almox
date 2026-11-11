@@ -1,42 +1,50 @@
-﻿import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "../use-auth";
+﻿import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert } from "@/components/ui/alert"
+import { useAuth } from "../use-auth"
+import logo from "@/assets/logo_almox.png"
 
 export function InactiveAccessPage() {
-  const { signOut, profile } = useAuth();
+  const { signOut, profile } = useAuth()
   return (
-    <div className="mx-auto max-w-md py-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Acesso indisponÃ­vel</CardTitle>
-          <CardDescription>Seu perfil nÃ£o estÃ¡ ativo para uso do sistema.</CardDescription>
+    <div className="mx-auto max-w-md py-6">
+      <div className="mb-6 flex justify-center"><img src={logo} alt="ALMOX" className="h-16 w-auto" /></div>
+      <Card className="border-line">
+        <CardHeader className="space-y-2">
+          <p className="font-mono text-xs text-warn">Acesso restrito</p>
+          <CardTitle className="font-heading text-2xl">Acesso indisponível</CardTitle>
+          <CardDescription>Seu perfil não está ativo para uso do sistema.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-gray-700" role="alert">
-            {profile ? "Entre em contato com um administrador para reativaÃ§Ã£o." : "Perfil nÃ£o encontrado ou inativo. Solicite liberaÃ§Ã£o a um administrador."}
-          </p>
-          <Button variant="secondary" className="w-full" onClick={() => void signOut()}>Sair</Button>
+          <Alert variant="warning">
+            {profile ? "Entre em contato com um administrador para solicitar a reativação do seu acesso." : "Perfil não encontrado ou inativo. Solicite liberação a um administrador."}
+          </Alert>
+          <Button variant="outline" className="w-full" onClick={() => void signOut()}>Sair da sessão</Button>
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
 
 export function MisconfiguredPage() {
   return (
-    <div className="mx-auto max-w-lg py-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>ConfiguraÃ§Ã£o necessÃ¡ria</CardTitle>
-          <CardDescription>Defina as variÃ¡veis do Supabase para habilitar o acesso.</CardDescription>
+    <div className="mx-auto max-w-lg py-6">
+      <div className="mb-6 flex justify-center"><img src={logo} alt="ALMOX" className="h-16 w-auto" /></div>
+      <Card className="border-line">
+        <CardHeader className="space-y-2">
+          <p className="font-mono text-xs text-signal">Configuração</p>
+          <CardTitle className="font-heading text-2xl">Configuração necessária</CardTitle>
+          <CardDescription>Defina as variáveis do Supabase para habilitar o acesso.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm text-gray-700">
-          <p>Copie <code className="rounded bg-gray-100 px-1">app/.env.example</code> para <code className="rounded bg-gray-100 px-1">app/.env.local</code>.</p>
-          <p>Preencha <code className="rounded bg-gray-100 px-1">VITE_SUPABASE_URL</code> e <code className="rounded bg-gray-100 px-1">VITE_SUPABASE_ANON_KEY</code>.</p>
-          <p className="text-amber-800">NÃ£o use chave <code>service_role</code> no frontend.</p>
+        <CardContent className="space-y-3 text-sm text-ink">
+          <ol className="list-decimal space-y-2 pl-5">
+            <li>Copie <code className="rounded bg-bg px-1.5 py-0.5 font-mono text-xs">app/.env.example</code> para <code className="rounded bg-bg px-1.5 py-0.5 font-mono text-xs">app/.env.local</code>.</li>
+            <li>Preencha <code className="rounded bg-bg px-1.5 py-0.5 font-mono text-xs">VITE_SUPABASE_URL</code> e <code className="rounded bg-bg px-1.5 py-0.5 font-mono text-xs">VITE_SUPABASE_ANON_KEY</code>.</li>
+            <li>Reinicie o servidor de desenvolvimento.</li>
+          </ol>
+          <Alert variant="warning">Não use a chave <code className="font-mono">service_role</code> no frontend.</Alert>
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
-

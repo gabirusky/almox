@@ -1,13 +1,17 @@
 import { supabase } from "@/lib/supabase";
+import { isOfflineMode } from "@/lib/mock-mode";
+import { mockApi } from "@/lib/mock-store";
 import type { Category, Department, PaginatedProducts, Product, ProductFormValues, ProductHistory, ProductListFilters, StockMovement, ReversalResult } from "../types";
 
 export async function listCategories() {
+  if (isOfflineMode()) return mockApi.listCategories();
   const { data, error } = await supabase.from("categories").select("*").order("active", { ascending: false }).order("name");
   if (error) throw error;
   return (data ?? []) as Category[];
 }
 
 export async function saveCategory(input: { id?: string; name: string; active?: boolean }) {
+  if (isOfflineMode()) { mockApi.saveCategory(input); return; }
   if (input.id) {
     const payload: { name: string; active?: boolean } = { name: input.name };
     if (input.active !== undefined) payload.active = input.active;
@@ -20,17 +24,20 @@ export async function saveCategory(input: { id?: string; name: string; active?: 
 }
 
 export async function setCategoryActive(id: string, active: boolean) {
+  if (isOfflineMode()) { mockApi.setCategoryActive(id, active); return; }
   const { error } = await supabase.from("categories").update({ active }).eq("id", id);
   if (error) throw error;
 }
 
 export async function listDepartments() {
+  if (isOfflineMode()) return mockApi.listDepartments();
   const { data, error } = await supabase.from("departments").select("*").order("active", { ascending: false }).order("name");
   if (error) throw error;
   return (data ?? []) as Department[];
 }
 
 export async function saveDepartment(input: { id?: string; name: string; active?: boolean }) {
+  if (isOfflineMode()) { mockApi.saveDepartment(input); return; }
   if (input.id) {
     const payload: { name: string; active?: boolean } = { name: input.name };
     if (input.active !== undefined) payload.active = input.active;
@@ -43,11 +50,13 @@ export async function saveDepartment(input: { id?: string; name: string; active?
 }
 
 export async function setDepartmentActive(id: string, active: boolean) {
+  if (isOfflineMode()) { mockApi.setDepartmentActive(id, active); return; }
   const { error } = await supabase.from("departments").update({ active }).eq("id", id);
   if (error) throw error;
 }
 
 export async function listProducts(filters: ProductListFilters = {}): Promise<PaginatedProducts> {
+  if (isOfflineMode()) return mockApi.listProducts(filters);
   const page = Math.max(1, filters.page ?? 1);
   const pageSize = Math.min(100, Math.max(1, filters.pageSize ?? 10));
   const sort = filters.sort ?? "name";
@@ -81,6 +90,7 @@ export async function listProducts(filters: ProductListFilters = {}): Promise<Pa
 const productSelect = "*, categories(id,name,active), stock_balances(product_id,quantity,version,updated_at)";
 
 export async function getProduct(productId: string): Promise<Product> {
+  if (isOfflineMode()) return mockApi.getProduct(productId);
   const { data, error } = await supabase.from("products").select(productSelect).eq("id", productId).maybeSingle();
   if (error) throw error;
   if (!data) throw new Error("PRODUCT_NOT_FOUND");
@@ -88,6 +98,7 @@ export async function getProduct(productId: string): Promise<Product> {
 }
 
 export async function getProductHistory(productId: string, page = 1, pageSize = 10): Promise<ProductHistory> {
+  if (isOfflineMode()) return mockApi.getProductHistory(productId, page, pageSize);
   const safePage = Math.max(1, page);
   const safePageSize = Math.min(100, Math.max(1, pageSize));
   const from = (safePage - 1) * safePageSize;
@@ -130,6 +141,7 @@ export async function registerEntry(input: {
   documentRef?: string;
   operationKey: string;
 }) {
+  if (isOfflineMode()) return mockApi.registerEntry(input);
   const { data, error } = await supabase.rpc("almox_register_entry", {
     p_product_id: input.productId,
     p_quantity: input.quantity,
@@ -143,6 +155,7 @@ export async function registerEntry(input: {
 }
 
 export async function reverseMovement(input: { movementId: string; reason: string; operationKey: string }): Promise<ReversalResult> {
+  if (isOfflineMode()) return mockApi.reverseMovement(input);
   const { data, error } = await supabase.rpc("almox_reverse_movement", {
     p_movement_id: input.movementId,
     p_reason: input.reason.trim(),
@@ -160,6 +173,7 @@ export async function registerExit(input: {
   reason: string;
   operationKey: string;
 }) {
+  if (isOfflineMode()) return mockApi.registerExit(input);
   const { data, error } = await supabase.rpc("almox_register_exit", {
     p_product_id: input.productId,
     p_quantity: input.quantity,
@@ -173,6 +187,7 @@ export async function registerExit(input: {
 }
 
 export async function createProduct(values: ProductFormValues) {
+  if (isOfflineMode()) { mockApi.createProduct(values); return; }
   const { error } = await supabase.rpc("almox_create_product", {
     p_sku: values.sku,
     p_name: values.name,
@@ -186,6 +201,7 @@ export async function createProduct(values: ProductFormValues) {
 }
 
 export async function updateProduct(id: string, values: ProductFormValues) {
+  if (isOfflineMode()) { mockApi.updateProduct(id, values); return; }
   const { error } = await supabase
     .from("products")
     .update({
@@ -202,6 +218,7 @@ export async function updateProduct(id: string, values: ProductFormValues) {
 }
 
 export async function setProductActive(id: string, active: boolean) {
+  if (isOfflineMode()) { mockApi.setProductActive(id, active); return; }
   const { error } = await supabase.from("products").update({ active }).eq("id", id);
   if (error) throw error;
 }

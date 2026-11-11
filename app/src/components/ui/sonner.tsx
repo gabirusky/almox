@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
-const Toaster = ({ theme = "system", ...props }: ToasterProps) => {
+const Toaster = ({ theme = "light", ...props }: ToasterProps) => {
   return (
     <Sonner
       theme={theme}

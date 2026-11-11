@@ -1,18 +1,25 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-import { Link } from "react-router";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useAuth } from "@/modules/access/use-auth";
-import { ConfirmAction } from "@/modules/shared/components/ConfirmAction";
-import { getErrorMessage } from "@/modules/shared/errors";
-import { balanceQuantity, createProduct, listCategories, listProducts, setProductActive, updateProduct } from "../services/catalog-api";
-import type { Product, ProductFormValues, ProductSituation, ProductSort } from "../types";
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMemo, useState } from "react"
+import { Link } from "react-router"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select } from "@/components/ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useAuth } from "@/modules/access/use-auth"
+import { ConfirmAction } from "@/modules/shared/components/ConfirmAction"
+import { getErrorMessage } from "@/modules/shared/errors"
+import { PageHeader } from "@/modules/shared/components/PageHeader"
+import { PaginationBar } from "@/modules/shared/components/PaginationBar"
+import { FeedbackAlert, LoadingSkeleton, ErrorState, EmptyState } from "@/modules/shared/components/States"
+import { ProductStatusBadge } from "@/modules/shared/components/StatusBadge"
+import { formatQuantity } from "@/modules/shared/formatters"
+import { balanceQuantity, createProduct, listCategories, listProducts, setProductActive, updateProduct } from "../services/catalog-api"
+import type { Product, ProductFormValues, ProductSituation, ProductSort } from "../types"
 
 const schema = z.object({
   sku: z.string().trim().min(1, "Informe o SKU.").max(64),
@@ -24,11 +31,11 @@ const schema = z.object({
   location: z.string().max(120).default(""),
 }).superRefine((v, ctx) => {
   if ((v.unit === "UN" || v.unit === "CX") && !Number.isInteger(v.minimum_stock)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["minimum_stock"], message: "UN/CX exigem valor inteiro." });
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["minimum_stock"], message: "UN/CX exigem valor inteiro." })
   }
-});
+})
 
-type Values = z.input<typeof schema>;
+type Values = z.input<typeof schema>
 
 function toFormValues(product?: Product | null): Values {
   return {
@@ -39,193 +46,202 @@ function toFormValues(product?: Product | null): Values {
     unit: (product?.unit as Values["unit"]) ?? "UN",
     minimum_stock: Number(product?.minimum_stock ?? 0),
     location: product?.location ?? "",
-  };
+  }
 }
 
 export function ProductsPage() {
-  const { profile } = useAuth();
-  const isAdmin = profile?.role === "admin";
-  const qc = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [situation, setSituation] = useState<ProductSituation>("all");
-  const [sort, setSort] = useState<ProductSort>("name");
-  const [direction, setDirection] = useState<"asc" | "desc">("asc");
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
-  const [editing, setEditing] = useState<Product | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const { profile } = useAuth()
+  const isAdmin = profile?.role === "admin"
+  const qc = useQueryClient()
+  const [search, setSearch] = useState("")
+  const [categoryId, setCategoryId] = useState("")
+  const [situation, setSituation] = useState<ProductSituation>("all")
+  const [sort, setSort] = useState<ProductSort>("name")
+  const [direction, setDirection] = useState<"asc" | "desc">("asc")
+  const [page, setPage] = useState(1)
+  const pageSize = 10
+  const [editing, setEditing] = useState<Product | null>(null)
+  const [showForm, setShowForm] = useState(false)
+  const [feedback, setFeedback] = useState<{ type: "success" | "danger"; text: string } | null>(null)
 
-  const categories = useQuery({ queryKey: ["categories"], queryFn: listCategories });
-  const activeCategories = useMemo(() => (categories.data ?? []).filter((c) => c.active), [categories.data]);
+  const categories = useQuery({ queryKey: ["categories"], queryFn: listCategories })
+  const activeCategories = useMemo(() => (categories.data ?? []).filter((c) => c.active), [categories.data])
   const products = useQuery({
     queryKey: ["products", { search, categoryId, situation, sort, direction, page, pageSize }],
     queryFn: () => listProducts({ search, categoryId, situation, sort, direction, page, pageSize }),
-  });
+  })
 
-  const form = useForm<Values>({ resolver: zodResolver(schema), values: toFormValues(editing) });
+  const form = useForm<Values>({ resolver: zodResolver(schema), values: toFormValues(editing) })
 
   const save = useMutation({
     mutationFn: async (values: Values) => {
-      const parsed = schema.parse(values) as ProductFormValues;
-      if (editing) await updateProduct(editing.id, parsed);
-      else await createProduct(parsed);
+      const parsed = schema.parse(values) as ProductFormValues
+      if (editing) await updateProduct(editing.id, parsed)
+      else await createProduct(parsed)
     },
     onSuccess: async () => {
-      setFeedback(editing ? "Produto atualizado." : "Produto criado com saldo inicial zero (aguardando movimentações).");
-      setEditing(null); setShowForm(false); form.reset(toFormValues(null));
-      await Promise.all([qc.invalidateQueries({ queryKey: ["products"] })]);
+      setFeedback({ type: "success", text: editing ? "Produto atualizado." : "Produto criado com saldo inicial zero." })
+      setEditing(null); setShowForm(false); form.reset(toFormValues(null))
+      await qc.invalidateQueries({ queryKey: ["products"] })
     },
-    onError: (err) => setFeedback(getErrorMessage(err, "Não foi possível salvar o produto.")),
-  });
+    onError: (err) => setFeedback({ type: "danger", text: getErrorMessage(err, "Não foi possível salvar o produto.") }),
+  })
 
   const inactivate = useMutation({
     mutationFn: (id: string) => setProductActive(id, false),
-    onSuccess: async () => { setFeedback("Produto inativado."); await qc.invalidateQueries({ queryKey: ["products"] }); },
-    onError: (err) => setFeedback(getErrorMessage(err, "Não foi possível inativar o produto.")),
-  });
+    onSuccess: async () => { setFeedback({ type: "success", text: "Produto inativado." }); await qc.invalidateQueries({ queryKey: ["products"] }) },
+    onError: (err) => setFeedback({ type: "danger", text: getErrorMessage(err, "Não foi possível inativar o produto.") }),
+  })
   const reactivate = useMutation({
     mutationFn: (id: string) => setProductActive(id, true),
-    onSuccess: async () => { setFeedback("Produto reativado."); await qc.invalidateQueries({ queryKey: ["products"] }); },
-    onError: (err) => setFeedback(getErrorMessage(err, "Não foi possível reativar o produto.")),
-  });
+    onSuccess: async () => { setFeedback({ type: "success", text: "Produto reativado." }); await qc.invalidateQueries({ queryKey: ["products"] }) },
+    onError: (err) => setFeedback({ type: "danger", text: getErrorMessage(err, "Não foi possível reativar o produto.") }),
+  })
 
-  const unitLocked = Boolean(editing?.first_movement_at);
+  const unitLocked = Boolean(editing?.first_movement_at)
+  const items = products.data?.items ?? []
+  const hasFilters = Boolean(search || categoryId || situation !== "all")
+
+  function openCreate() { setEditing(null); form.reset(toFormValues(null)); setShowForm(true); setFeedback(null) }
+  function openEdit(item: Product) { setEditing(item); form.reset(toFormValues(item)); setShowForm(true); setFeedback(null) }
 
   return (
-    <section className="space-y-6" aria-labelledby="products-title">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 id="products-title" className="text-2xl font-semibold">Produtos</h1>
-          <p className="text-sm text-gray-700">Catálogo (RF03). Novos produtos iniciam com saldo zero; inativação exige saldo zero.</p>
+    <section className="space-y-6">
+      <PageHeader
+        title="Produtos"
+        description="Consulte o catálogo, saldo e situação dos itens. Novos produtos iniciam com saldo zero; inativação exige saldo zero."
+        actions={isAdmin ? <Button type="button" onClick={openCreate}>Novo produto</Button> : undefined}
+      />
+
+      {feedback ? <FeedbackAlert variant={feedback.type}>{feedback.text}</FeedbackAlert> : null}
+
+      <Dialog open={isAdmin && showForm} onOpenChange={(open) => { if (!open) { setShowForm(false); setEditing(null) } }}>
+        <DialogContent className="max-w-2xl" labelledBy="product-form-title">
+          <DialogHeader>
+            <DialogTitle id="product-form-title">{editing ? "Editar produto" : "Novo produto"}</DialogTitle>
+            <DialogDescription>{editing ? "Atualize os dados do produto. Campos sujeitos a regras do banco serão validados no salvamento." : "Ao criar, o produto recebe saldo inicial zero automaticamente."}</DialogDescription>
+          </DialogHeader>
+          <form className="grid gap-4 sm:grid-cols-2" onSubmit={form.handleSubmit((v) => save.mutate(v))}>
+            <div className="space-y-1.5">
+              <Label htmlFor="sku">SKU</Label>
+              <Input id="sku" aria-invalid={Boolean(form.formState.errors.sku)} aria-describedby={form.formState.errors.sku ? "sku-error" : undefined} {...form.register("sku")} />
+              {form.formState.errors.sku ? <p id="sku-error" className="text-sm text-danger" role="alert">{form.formState.errors.sku.message}</p> : null}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="name">Nome</Label>
+              <Input id="name" aria-invalid={Boolean(form.formState.errors.name)} aria-describedby={form.formState.errors.name ? "name-error" : undefined} {...form.register("name")} />
+              {form.formState.errors.name ? <p id="name-error" className="text-sm text-danger" role="alert">{form.formState.errors.name.message}</p> : null}
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="description">Descrição (opcional)</Label>
+              <Input id="description" {...form.register("description")} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="category_id">Categoria ativa</Label>
+              <Select id="category_id" aria-invalid={Boolean(form.formState.errors.category_id)} aria-describedby={form.formState.errors.category_id ? "category-error" : undefined} {...form.register("category_id")}>
+                <option value="">Selecione...</option>
+                {activeCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {editing?.category_id && !activeCategories.some((c) => c.id === editing.category_id) ? <option value={editing.category_id}>{editing.categories?.name ?? "Categoria atual"} (atual)</option> : null}
+              </Select>
+              {form.formState.errors.category_id ? <p id="category-error" className="text-sm text-danger" role="alert">{form.formState.errors.category_id.message}</p> : null}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="unit">Unidade</Label>
+              <Select id="unit" disabled={unitLocked} {...form.register("unit")}>
+                {(["UN", "CX", "KG", "L", "M"] as const).map((u) => <option key={u} value={u}>{u}</option>)}
+              </Select>
+              {unitLocked ? <p className="text-xs text-warn">Unidade bloqueada após a primeira movimentação.</p> : null}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="minimum_stock">Estoque mínimo</Label>
+              <Input id="minimum_stock" type="number" step="0.001" min="0" aria-invalid={Boolean(form.formState.errors.minimum_stock)} aria-describedby={form.formState.errors.minimum_stock ? "min-error" : undefined} {...form.register("minimum_stock")} />
+              {form.formState.errors.minimum_stock ? <p id="min-error" className="text-sm text-danger" role="alert">{form.formState.errors.minimum_stock.message}</p> : null}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="location">Localização (opcional)</Label>
+              <Input id="location" {...form.register("location")} />
+            </div>
+            <DialogFooter className="sm:col-span-2">
+              <Button type="button" variant="outline" onClick={() => { setShowForm(false); setEditing(null) }}>Cancelar</Button>
+              <Button type="submit" disabled={save.isPending}>{save.isPending ? "Salvando..." : "Salvar"}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <div className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 lg:flex-row lg:items-end">
+        <div className="flex-1 space-y-1.5">
+          <Label htmlFor="search">Buscar</Label>
+          <Input id="search" placeholder="Nome ou SKU" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} />
         </div>
-        {isAdmin ? <Button type="button" onClick={() => { setEditing(null); form.reset(toFormValues(null)); setShowForm(true); }}>Novo produto</Button> : null}
+        <div className="w-full space-y-1.5 lg:w-48">
+          <Label htmlFor="category-filter">Categoria</Label>
+          <Select id="category-filter" value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setPage(1) }}>
+            <option value="">Todas</option>
+            {activeCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+          </Select>
+        </div>
+        <div className="w-full space-y-1.5 lg:w-44">
+          <Label htmlFor="situation-filter">Situação</Label>
+          <Select id="situation-filter" value={situation} onChange={(e) => { setSituation(e.target.value as ProductSituation); setPage(1) }}>
+            <option value="all">Todas</option>
+            <option value="active">Ativos</option>
+            <option value="inactive">Inativos</option>
+            <option value="zero_balance">Sem saldo</option>
+          </Select>
+        </div>
+        <div className="w-full space-y-1.5 lg:w-52">
+          <Label htmlFor="sort-filter">Ordenação</Label>
+          <Select id="sort-filter" value={`${sort}:${direction}`} onChange={(e) => { const [nextSort, nextDirection] = e.target.value.split(":") as [ProductSort, "asc" | "desc"]; setSort(nextSort); setDirection(nextDirection); setPage(1) }}>
+            <option value="name:asc">Nome (A–Z)</option>
+            <option value="name:desc">Nome (Z–A)</option>
+            <option value="sku:asc">SKU (crescente)</option>
+            <option value="updated_at:desc">Atualizados recentemente</option>
+          </Select>
+        </div>
+        <Button type="button" variant="outline" onClick={() => { setSearch(""); setCategoryId(""); setSituation("all"); setSort("name"); setDirection("asc"); setPage(1) }}>Limpar</Button>
       </div>
 
-      {feedback ? <p className="rounded border bg-white p-3 text-sm" role="status">{feedback}</p> : null}
-
-      {isAdmin && showForm ? (
-        <Card>
-          <CardHeader><CardTitle>{editing ? "Editar produto" : "Novo produto"}</CardTitle></CardHeader>
-          <CardContent>
-            <form className="grid gap-4 sm:grid-cols-2" onSubmit={form.handleSubmit((v) => save.mutate(v))}>
-              <div className="space-y-2">
-                <Label htmlFor="sku">SKU</Label>
-                <Input id="sku" aria-invalid={Boolean(form.formState.errors.sku)} {...form.register("sku")} />
-                {form.formState.errors.sku ? <p className="text-sm text-red-600" role="alert">{form.formState.errors.sku.message}</p> : null}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome</Label>
-                <Input id="name" aria-invalid={Boolean(form.formState.errors.name)} {...form.register("name")} />
-                {form.formState.errors.name ? <p className="text-sm text-red-600" role="alert">{form.formState.errors.name.message}</p> : null}
-              </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="description">Descrição (opcional)</Label>
-                <Input id="description" {...form.register("description")} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="category_id">Categoria ativa</Label>
-                <select id="category_id" className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm" aria-invalid={Boolean(form.formState.errors.category_id)} {...form.register("category_id")}>
-                  <option value="">Selecione...</option>
-                  {activeCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  {editing?.category_id && !activeCategories.some((c) => c.id === editing.category_id) ? <option value={editing.category_id}>{editing.categories?.name ?? "Categoria atual (inativa)"} (atual)</option> : null}
-                </select>
-                {form.formState.errors.category_id ? <p className="text-sm text-red-600" role="alert">{form.formState.errors.category_id.message}</p> : null}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="unit">Unidade</Label>
-                <select id="unit" className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm" disabled={unitLocked} {...form.register("unit")}>
-                  {(["UN", "CX", "KG", "L", "M"] as const).map((u) => <option key={u} value={u}>{u}</option>)}
-                </select>
-                {unitLocked ? <p className="text-xs text-amber-800">Unidade bloqueada após primeira movimentação (RN14).</p> : null}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="minimum_stock">Estoque mínimo</Label>
-                <Input id="minimum_stock" type="number" step="0.001" min="0" aria-invalid={Boolean(form.formState.errors.minimum_stock)} {...form.register("minimum_stock")} />
-                {form.formState.errors.minimum_stock ? <p className="text-sm text-red-600" role="alert">{form.formState.errors.minimum_stock.message}</p> : null}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="location">Localização (opcional)</Label>
-                <Input id="location" {...form.register("location")} />
-              </div>
-              {!editing ? <p className="text-sm text-gray-600 sm:col-span-2">Ao criar, o produto recebe saldo inicial <strong>0</strong> automaticamente (RN05/RNF02).</p> : null}
-              <div className="flex gap-2 sm:col-span-2">
-                <Button type="submit" disabled={save.isPending}>{save.isPending ? "Salvando..." : "Salvar"}</Button>
-                <Button type="button" variant="outline" onClick={() => { setShowForm(false); setEditing(null); }}>Cancelar</Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <Label htmlFor="search" className="sr-only">Buscar por nome ou SKU</Label>
-        <Input id="search" placeholder="Buscar por nome ou SKU" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="max-w-md" />
-        <Label htmlFor="category-filter" className="sr-only">Filtrar por categoria</Label>
-        <select id="category-filter" className="h-9 rounded-md border border-input bg-white px-3 text-sm" value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setPage(1); }}>
-          <option value="">Todas as categorias</option>
-          {activeCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-        </select>
-        <Label htmlFor="situation-filter" className="sr-only">Filtrar por situação</Label>
-        <select id="situation-filter" className="h-9 rounded-md border border-input bg-white px-3 text-sm" value={situation} onChange={(e) => { setSituation(e.target.value as ProductSituation); setPage(1); }}>
-          <option value="all">Todas as situações</option>
-          <option value="active">Ativos</option>
-          <option value="inactive">Inativos</option>
-          <option value="zero_balance">Sem saldo</option>
-        </select>
-        <Label htmlFor="sort-filter" className="sr-only">Ordenar produtos</Label>
-        <select id="sort-filter" className="h-9 rounded-md border border-input bg-white px-3 text-sm" value={`${sort}:${direction}`} onChange={(e) => { const [nextSort, nextDirection] = e.target.value.split(":") as [ProductSort, "asc" | "desc"]; setSort(nextSort); setDirection(nextDirection); setPage(1); }}>
-          <option value="name:asc">Nome (A–Z)</option>
-          <option value="name:desc">Nome (Z–A)</option>
-          <option value="sku:asc">SKU (crescente)</option>
-          <option value="updated_at:desc">Atualizados recentemente</option>
-        </select>
-        <button type="button" className="rounded px-2 py-1 text-sm underline focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900" onClick={() => { setSearch(""); setCategoryId(""); setSituation("all"); setSort("name"); setDirection("asc"); setPage(1); }}>Limpar filtros</button>
-      </div>
-
-      <div className="overflow-x-auto rounded-lg border bg-white">
-        {products.isLoading ? <p className="p-4 text-sm">Carregando...</p> : null}
-        {products.error ? <p className="p-4 text-sm text-red-600" role="alert">{getErrorMessage(products.error, "Falha ao carregar produtos.")}</p> : null}
+      <div className="rounded-lg border border-line bg-surface">
+        {products.isLoading ? <LoadingSkeleton className="border-0" lines={6} /> : null}
+        {products.error ? <div className="p-4"><ErrorState message={getErrorMessage(products.error, "Falha ao carregar produtos.")} /></div> : null}
         {!products.isLoading && !products.error ? (
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b bg-gray-50"><tr><th className="px-4 py-2 font-medium">SKU</th><th className="px-4 py-2 font-medium">Nome</th><th className="px-4 py-2 font-medium">Categoria</th><th className="px-4 py-2 font-medium">Saldo</th><th className="px-4 py-2 font-medium">Situação</th>{isAdmin ? <th className="px-4 py-2 font-medium">Ações</th> : null}</tr></thead>
-            <tbody>
-              {(products.data?.items ?? []).map((item) => {
-                const qty = balanceQuantity(item);
-                return (
-                  <tr key={item.id} className="border-b last:border-0">
-                    <td className="px-4 py-2 font-mono text-xs">{item.sku}</td>
-                    <td className="px-4 py-2"><Link to={`/produtos/${item.id}`} className="underline decoration-gray-400 underline-offset-2 hover:decoration-gray-900">{item.name}</Link></td>
-                    <td className="px-4 py-2">{item.categories?.name ?? "—"}</td>
-                    <td className="px-4 py-2">{qty} {item.unit}</td>
-                    <td className="px-4 py-2">
-                      {!item.active ? <span className="rounded bg-gray-100 px-2 py-0.5 text-gray-700">Inativo</span> : qty <= 0 ? <span className="rounded bg-amber-50 px-2 py-0.5 text-amber-900">Sem saldo</span> : <span className="rounded bg-green-50 px-2 py-0.5 text-green-800">Ativo</span>}
-                    </td>
-                    {isAdmin ? (
-                      <td className="flex flex-wrap gap-2 px-4 py-2">
-                        <Button type="button" size="sm" variant="outline" onClick={() => { setEditing(item); setShowForm(true); }}>Editar</Button>
-                        {item.active ? <ConfirmAction title="Inativar produto" description={qty === 0 ? "O produto será inativado e não aceitará novas operações." : `Saldo atual: ${qty} ${item.unit}. A inativação será recusada até o saldo ser zero.`} confirmLabel="Inativar" triggerLabel="Inativar" onConfirm={() => inactivate.mutateAsync(item.id)} /> : <Button type="button" size="sm" variant="secondary" onClick={() => reactivate.mutate(item.id)} disabled={reactivate.isPending}>Reativar</Button>}
-                      </td>
-                    ) : null}
-                  </tr>
-                );
-              })}
-              {(products.data?.items ?? []).length === 0 ? <tr><td className="px-4 py-4 text-gray-600" colSpan={isAdmin ? 6 : 5}>Nenhum produto encontrado para os filtros informados.</td></tr> : null}
-            </tbody>
-          </table>
+          items.length === 0 ? <div className="p-4"><EmptyState title={hasFilters ? "Nenhum produto encontrado" : "Nenhum produto cadastrado"} description={hasFilters ? "Ajuste ou limpe os filtros para ver outros resultados." : (isAdmin ? "Cadastre o primeiro produto para iniciar o controle." : "Ainda não há produtos disponíveis.")} action={hasFilters ? <Button variant="outline" onClick={() => { setSearch(""); setCategoryId(""); setSituation("all"); setPage(1) }}>Limpar filtros</Button> : undefined} /></div> : (
+            <Table>
+              <TableHeader><TableRow><TableHead>SKU</TableHead><TableHead>Nome</TableHead><TableHead>Categoria</TableHead><TableHead>Saldo</TableHead><TableHead>Situação</TableHead>{isAdmin ? <TableHead className="w-[220px]">Ações</TableHead> : null}</TableRow></TableHeader>
+              <TableBody>
+                {items.map((item) => {
+                  const qty = balanceQuantity(item)
+                  return (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-mono text-xs text-ink">{item.sku}</TableCell>
+                      <TableCell><Link to={`/produtos/${item.id}`} className="font-medium text-signal underline decoration-signal/30 underline-offset-2 hover:decoration-signal">{item.name}</Link></TableCell>
+                      <TableCell className="text-muted">{item.categories?.name ?? "—"}</TableCell>
+                      <TableCell className="font-mono text-xs">{formatQuantity(qty, item.unit)}</TableCell>
+                      <TableCell><ProductStatusBadge active={item.active} balance={qty} /></TableCell>
+                      {isAdmin ? (
+                        <TableCell>
+                          <div className="flex flex-wrap gap-2">
+                            <Button type="button" size="sm" variant="outline" onClick={() => openEdit(item)}>Editar</Button>
+                            {item.active ? (
+                              <ConfirmAction title="Inativar produto" description={qty === 0 ? "O produto será inativado e não aceitará novas operações." : `Saldo atual: ${formatQuantity(qty, item.unit)}. A inativação será recusada até o saldo ser zero.`} confirmLabel="Inativar" triggerLabel="Inativar" variant="outline" onConfirm={() => inactivate.mutateAsync(item.id)} />
+                            ) : (
+                              <Button type="button" size="sm" variant="secondary" onClick={() => reactivate.mutate(item.id)} disabled={reactivate.isPending}>Reativar</Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      ) : null}
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          )
         ) : null}
       </div>
       {!products.isLoading && !products.error && products.data ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm" aria-label="Paginação de produtos">
-          <p className="text-gray-600">{products.data.total === 0 ? "Nenhum resultado" : `Mostrando ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, products.data.total)} de ${products.data.total}`}</p>
-          <div className="flex items-center gap-2">
-            <Button type="button" size="sm" variant="outline" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={page === 1 || products.isFetching}>Anterior</Button>
-            <span>Página {page} de {Math.max(1, Math.ceil(products.data.total / pageSize))}</span>
-            <Button type="button" size="sm" variant="outline" onClick={() => setPage((current) => current + 1)} disabled={page >= Math.max(1, Math.ceil(products.data.total / pageSize)) || products.isFetching}>Próxima</Button>
-          </div>
-        </div>
+        <PaginationBar page={page} pageSize={pageSize} total={products.data.total} onPageChange={setPage} loading={products.isFetching} label="Paginação de produtos" />
       ) : null}
     </section>
-  );
+  )
 }

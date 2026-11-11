@@ -38,3 +38,9 @@
 - **Separação de responsabilidades:** React cuida de experiência/validação de formulário; PostgreSQL/Supabase garantem identidade, autorização, consistência, concorrência e auditoria.
 - **Adequação ao domínio:** estoque exige “verdade única” de saldo e histórico imutável/rastreável — concentrar regras no banco evita divergência entre telas/clients.
 - **Escopo e maturidade:** arquitetura BaaS + SPA acelera o MVP acadêmico sem abrir mão das invariantes críticas; itens operacionais (validação integrada RF08/RF09, metas de desempenho/recuperação em homologação) permanecem como próximos passos do projeto em andamento.
+
+### 5. Protótipo Figma e componentes de UI
+- **Figma como inspiração:** eventuais protótipos no Figma servem apenas como referência de intenção visual, hierarquia e fluxo de telas.
+- **Implementação padronizada:** a interface deve ser reconstruída no código com **componentes shadcn/ui padrão e reutilizáveis** (`app/src/components/ui`) e composições compartilhadas do projeto, sem copiar código exportado do Figma.
+- **Benefícios:** consistência visual, acessibilidade, manutenção mais simples, reaproveitamento entre páginas (RF01–RF09) e aderência aos tokens/convenções do ALMOX.
+- **Integração MCP:** o servidor MCP do Figma está disponível para consulta de contexto de design quando necessário; isso não altera a regra de implementar com componentes shadcn/ui padrão e reutilizáveis.
