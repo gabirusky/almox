@@ -17,6 +17,16 @@ export function getErrorMessage(error: unknown, fallback = "Ocorreu um erro ines
   if (message.includes("REVERSAL_INSUFFICIENT_STOCK")) return "O estorno deixaria o saldo negativo. Confira o estoque e as movimentações antes de corrigir.";
   if (message.includes("STOCK_LIMIT_EXCEEDED")) return "O resultado ultrapassa o limite de saldo permitido.";
   if (message.includes("MOVEMENT_NOT_FOUND")) return "Movimentação não encontrada.";
+  if (message.includes("STOCK_ADJUSTMENT_ADMIN_REQUIRED")) return "Somente administradores ativos podem ajustar o estoque.";
+  if (message.includes("COUNTED_QUANTITY_INVALID")) return "Informe uma contagem não negativa com até três casas decimais e dentro do limite permitido.";
+  if (message.includes("COUNTED_QUANTITY_MUST_BE_INTEGER")) return "A unidade deste produto exige uma contagem inteira.";
+  if (message.includes("ADJUSTMENT_REASON_INVALID")) return "Informe o motivo do ajuste (até 500 caracteres).";
+  if (message.includes("STOCK_VERSION_CHANGED")) return "O saldo mudou desde a leitura. Faça uma nova contagem antes de ajustar.";
+  if (message.includes("COUNT_MATCHES_CURRENT_STOCK")) return "A contagem coincide com o saldo atual; nenhum ajuste é necessário.";
+  if (message.includes("STOCK_VERSION_INVALID")) return "Não foi possível validar a versão do saldo. Atualize o produto e tente novamente.";
+  if (message.includes("MOVEMENT_DATE_RANGE_INVALID")) return "A data final deve ser igual ou posterior à data inicial.";
+  if (message.includes("MOVEMENT_PAGE_INVALID")) return "A página solicitada não é válida.";
+  if (message.includes("MOVEMENT_KIND_INVALID")) return "O tipo de movimentação selecionado não é válido.";
   if (message.includes("FORBIDDEN") || code === "42501") return "Você não tem permissão para realizar esta operação.";
   if (message.includes("products_sku_normalized_uidx") || message.includes("duplicate key") && message.toLowerCase().includes("sku")) return "SKU já cadastrado (inclusive entre produtos inativos).";
   if (message.includes("categories_name_normalized_uidx") || (message.includes("duplicate key") && message.toLowerCase().includes("categories"))) return "Já existe uma categoria com este nome.";

@@ -115,3 +115,37 @@ export interface ReversalResult {
   version: number;
   kind: "ESTORNO";
 }
+
+export interface StockAdjustmentResult {
+  movement_id: string;
+  product_id: string;
+  delta: string;
+  balance: string;
+  version: number;
+  kind: "AJUSTE";
+}
+
+export interface MovementSearchFilters {
+  from: string | null;
+  toExclusive: string | null;
+  product: string;
+  kind: MovementKind | "";
+  actor: string;
+  department: string;
+  page: number;
+  pageSize: number;
+}
+
+export interface SearchableStockMovement extends StockMovement {
+  product_sku: string;
+  product_name: string;
+  product_unit: ProductUnit;
+  reversed_by: string | null;
+}
+
+export interface MovementSearchResult {
+  items: SearchableStockMovement[];
+  total: number;
+  page: number;
+  page_size: number;
+}
