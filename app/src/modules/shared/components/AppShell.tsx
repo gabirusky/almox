@@ -36,6 +36,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <NavItem to="/movimentacoes">Operações</NavItem>
                 <NavItem to="/movimentacoes/nova">Entrada</NavItem>
                 <NavItem to="/movimentacoes/saida">Saída</NavItem>
+                {profile?.role === "admin" ? <NavItem to="/movimentacoes/ajuste">Contagem</NavItem> : null}
                 <NavItem to="/categorias">Categorias</NavItem>
                 <NavItem to="/setores">Setores</NavItem>
                 <span className="hidden px-2 text-xs text-muted lg:inline">{profile?.display_name} · {profile?.role === "admin" ? "admin" : "funcionário"}</span>

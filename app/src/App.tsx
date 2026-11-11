@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { BrowserRouter, Link, Route, Routes } from "react-router"
 import { AuthProvider } from "@/modules/access/auth-context"
 import { useAuth } from "@/modules/access/use-auth"
-import { PublicOnly, RequireAuth } from "@/modules/access/guards"
+import { PublicOnly, RequireAuth, RequireRole } from "@/modules/access/guards"
 import { InactiveAccessPage, MisconfiguredPage } from "@/modules/access/pages/AccessStatusPages"
 import { LoginPage } from "@/modules/access/pages/LoginPage"
 import { RecoverPasswordPage } from "@/modules/access/pages/RecoverPasswordPage"
@@ -13,6 +13,7 @@ import { ProductDetailsPage } from "@/modules/catalog/pages/ProductDetailsPage"
 import { NewEntryPage } from "@/modules/catalog/pages/NewEntryPage"
 import { NewExitPage } from "@/modules/catalog/pages/NewExitPage"
 import { OperationsLogPage } from "@/modules/catalog/pages/OperationsLogPage"
+import { InventoryCountPage } from "@/modules/catalog/pages/InventoryCountPage"
 import { AppShell } from "@/modules/shared/components/AppShell"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -72,6 +73,7 @@ export default function App() {
               <Route path="/movimentacoes" element={<RequireAuth><OperationsLogPage /></RequireAuth>} />
               <Route path="/movimentacoes/nova" element={<RequireAuth><NewEntryPage /></RequireAuth>} />
               <Route path="/movimentacoes/saida" element={<RequireAuth><NewExitPage /></RequireAuth>} />
+              <Route path="/movimentacoes/ajuste" element={<RequireAuth><RequireRole role="admin"><InventoryCountPage /></RequireRole></RequireAuth>} />
               <Route path="/categorias" element={<RequireAuth><CategoriesPage /></RequireAuth>} />
               <Route path="/setores" element={<RequireAuth><DepartmentsPage /></RequireAuth>} />
               <Route path="/app" element={<RequireAuth><HomePage /></RequireAuth>} />
