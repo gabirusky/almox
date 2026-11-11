@@ -10,6 +10,13 @@ export function getErrorMessage(error: unknown, fallback = "Ocorreu um erro ines
   if (message.includes("CATEGORY_INACTIVE_OR_NOT_FOUND")) return "Selecione uma categoria ativa.";
   if (message.includes("PRODUCT_UNIT_LOCKED_AFTER_FIRST_MOVEMENT")) return "A unidade não pode ser alterada após a primeira movimentação.";
   if (message.includes("ACTIVE_PROFILE_REQUIRED")) return "Sua sessão não está ativa para realizar esta operação.";
+  if (message.includes("REVERSAL_ADMIN_REQUIRED")) return "Somente administradores ativos podem estornar movimentações.";
+  if (message.includes("REVERSAL_REASON_INVALID")) return "Informe a justificativa do estorno (até 500 caracteres).";
+  if (message.includes("MOVEMENT_ALREADY_REVERSED")) return "Esta movimentação já foi estornada. Atualize o histórico.";
+  if (message.includes("REVERSAL_OF_REVERSAL_FORBIDDEN")) return "Não é permitido estornar um estorno.";
+  if (message.includes("REVERSAL_INSUFFICIENT_STOCK")) return "O estorno deixaria o saldo negativo. Confira o estoque e as movimentações antes de corrigir.";
+  if (message.includes("STOCK_LIMIT_EXCEEDED")) return "O resultado ultrapassa o limite de saldo permitido.";
+  if (message.includes("MOVEMENT_NOT_FOUND")) return "Movimentação não encontrada.";
   if (message.includes("FORBIDDEN") || code === "42501") return "Você não tem permissão para realizar esta operação.";
   if (message.includes("products_sku_normalized_uidx") || message.includes("duplicate key") && message.toLowerCase().includes("sku")) return "SKU já cadastrado (inclusive entre produtos inativos).";
   if (message.includes("categories_name_normalized_uidx") || (message.includes("duplicate key") && message.toLowerCase().includes("categories"))) return "Já existe uma categoria com este nome.";

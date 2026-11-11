@@ -1,6 +1,6 @@
 # Handoff RF05–RF06 (histórico / estado atual)
 
-> **Status:** RF05 e RF06 implementados; RF07 entregue e RF08 implementado no código, ainda sem verificação integrada no Supabase. Registra as interfaces para RF09+.
+> **Status:** RF05 e RF06 implementados; RF07 entregue e RF08/RF09 implementados no código, ainda sem verificação integrada no Supabase. Registra as interfaces para RF10+.
 
 ## Base entregue
 - **RF01–RF04:** auth/perfis/guards + catálogo (`categories`, `departments`, `products`, `stock_balances`, `audit_events`), RPC `almox_create_product`, regras RLS/RN14/RN15.
@@ -15,6 +15,7 @@
 
 ## Próximos slices (sugestão)
 - **RF08:** código de saída em `NewExitPage`, `almox_register_exit` e migration `20261110192000_rf08_exits.sql`; aplicar e validar em Supabase local/homologação antes de considerar o fluxo integrado.
-- **RF09–RF10:** estornos/ajustes sobre `stock_movements` + atualização consistente de saldo.
+- **RF09:** `almox_reverse_movement` e `ReversalAction` implementados; validação integrada pendente. O histórico retorna `reversedBy` para identificar originais já estornados mesmo quando o estorno estiver em outra página.
+- **RF10:** ajustes sobre `stock_movements` + atualização consistente de saldo. Preservar a ordem de bloqueio comando → produto → saldo e usar discriminador de tipo no hash de idempotência.
 - **RF11–RF13+:** ampliar auditoria operacional, validações de concorrência/idempotência e relatórios conforme análise.
 - Manter autorização no banco, snapshots históricos imutáveis e sem `service_role` no frontend.

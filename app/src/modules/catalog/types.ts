@@ -98,9 +98,20 @@ export interface StockMovement {
 }
 
 export interface ProductHistory {
+  reversedBy: Record<string, string>;
   product: Product;
   movements: StockMovement[];
   total: number;
   page: number;
   pageSize: number;
+}
+
+export interface ReversalResult {
+  movement_id: string;
+  reversal_of: string;
+  product_id: string;
+  delta: string;
+  balance: string;
+  version: number;
+  kind: "ESTORNO";
 }

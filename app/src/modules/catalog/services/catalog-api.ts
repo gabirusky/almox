@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import type { Category, Department, PaginatedProducts, Product, ProductFormValues, ProductHistory, ProductListFilters, StockMovement } from "../types";
+import type { Category, Department, PaginatedProducts, Product, ProductFormValues, ProductHistory, ProductListFilters, StockMovement, ReversalResult } from "../types";
 
 export async function listCategories() {
   const { data, error } = await supabase.from("categories").select("*").order("active", { ascending: false }).order("name");
@@ -104,7 +104,16 @@ export async function getProductHistory(productId: string, page = 1, pageSize = 
       .range(from, to),
   ]);
   if (movements.error) throw movements.error;
+  const ids = (movements.data ?? []).map((movement) => movement.id as string);
+  const reversedBy: Record<string, string> = {};
+  // Reversals may be on another page; never infer eligibility from this page alone.
+  if (ids.length > 0) {
+    const reversals = await supabase.from("stock_movements").select("id,reversal_of").in("reversal_of", ids);
+    if (reversals.error) throw reversals.error;
+    for (const reversal of reversals.data ?? []) reversedBy[reversal.reversal_of as string] = reversal.id as string;
+  }
   return {
+    reversedBy,
     product,
     movements: (movements.data ?? []) as StockMovement[],
     total: movements.count ?? 0,
@@ -131,6 +140,16 @@ export async function registerEntry(input: {
   });
   if (error) throw error;
   return data as { product_id: string; quantity: number | string; balance: number | string; version: number; kind: "ENTRADA" };
+}
+
+export async function reverseMovement(input: { movementId: string; reason: string; operationKey: string }): Promise<ReversalResult> {
+  const { data, error } = await supabase.rpc("almox_reverse_movement", {
+    p_movement_id: input.movementId,
+    p_reason: input.reason.trim(),
+    p_operation_key: input.operationKey,
+  });
+  if (error) throw error;
+  return data as ReversalResult;
 }
 
 export async function registerExit(input: {
