@@ -2,7 +2,7 @@
 
 Sistema web para controle interno de estoque com rastreabilidade (autor, data/hora do servidor, motivo e efeito de cada operação), perfis `admin`/`employee` e regras de consistência aplicadas no banco.
 
-> **Status:** código implementado até **RF09** (acesso, catálogo, consulta, saldo/histórico, entrada, saída e estorno). RF08/RF09 requerem aplicação das migrations e validação integrada no Supabase antes de uso real. Documento-fonte: `Análise de Requisitos e Arquitetura de Software.md`.
+> **Status:** código implementado até **RF11** (inclui ajuste por contagem física com controle de versão e consulta filtrada do histórico). RF08–RF11 requerem aplicação das migrations e validação integrada no Supabase antes de uso real. Documento-fonte: `Análise de Requisitos e Arquitetura de Software.md`.
 
 ## Objetivo (MVP)
 Consulta confiável de saldo, movimentações rastreáveis e correções auditáveis em um único almoxarifado (escopo analisado RF01–RF16). Fora do MVP: multi-depósito, compras/fiscal, patrimônio individual, lotes/séries, anexos, aprovações, offline, ERP.
@@ -20,8 +20,10 @@ Consulta confiável de saldo, movimentações rastreáveis e correções auditá
 | RF07 | P0 | Entrada de estoque atômica, auditável e idempotente | implementado |
 | RF08 | P0 | Saída com produto, quantidade, setor, recebedor e motivo | implementado no código; validação integrada pendente |
 | RF09 | P0 | Estorno integral administrativo, com justificativa e vínculo ao original | implementado no código; validação integrada pendente |
+| RF10 | P0 | Ajuste administrativo pela contagem física, com recusa se o saldo mudou desde a leitura | implementado no código; validação integrada pendente |
+| RF11 | P0 | Consulta do histórico por período, produto, tipo, autor e setor, com vínculo de estorno | implementado no código; validação integrada pendente |
 
-## Requisitos não funcionais atrelados (RF01–RF09)
+## Requisitos não funcionais atrelados (RF01–RF11)
 
 | NFR | Aplicação no recorte |
 |---|---|
@@ -64,7 +66,7 @@ app/
     components/ui/        # base shadcn/ui
     modules/
       access/             # RF01/RF02 (auth, guards, perfis/sessão)
-      catalog/            # RF03–RF08 (produtos, categorias, setores, detalhe, entrada, saída)
+      catalog/            # RF03–RF11 (catálogo, movimentações, contagem e histórico)
       shared/             # erros, confirmações, utilitários comuns
 supabase/
   migrations/             # SQL versionado (schema, RLS, auditoria, domínio, histórico, entradas)
@@ -79,6 +81,8 @@ docs/                     # handoffs e roteiros de demo
 - `/produtos`, `/produtos/:id` — consulta, cadastro/edição/inativação (admin), saldo, histórico e estorno administrativo (RF09)
 - `/movimentacoes/nova` — registro de entrada (RF07)
 - `/movimentacoes/saida` — registro de saída (RF08)
+- `/movimentacoes/ajuste` — ajuste de estoque por contagem física (RF10; administrador)
+- `/movimentacoes` — consulta global do histórico com filtros (RF11)
 - `/categorias`, `/setores` — manutenção administrativa
 - `/app` — área autenticada (alias/home protegida)
 
@@ -131,10 +135,13 @@ npx supabase db reset   # aplica migrations + supabase/seed.sql
 - `20261110191000_t121_t128_rf07_entries.sql` — comandos/entrada atômica e idempotente (RF07)
 - `20261110192000_rf08_exits.sql` — saída atômica/idempotente e fechamento de escrita direta no saldo (RF08)
 - `20261110193000_rf09_reversals.sql` — estorno integral administrativo, com unicidade e proteção do saldo (RF09)
+- `20261111120000_rf10_rf11_inventory_and_history.sql` — ajuste pela contagem com versão esperada e consulta paginada filtrável (RF10/RF11)
 
 ## Estado e notas
 - **RF09:** no histórico, administradores podem justificar e confirmar o estorno integral. A RPC `almox_reverse_movement` preserva o original, calcula o delta inverso, recusa saldo negativo/produto inativo/estorno duplicado/estorno de estorno e confirma saldo, auditoria e comando conjuntamente. Vínculos são exibidos mesmo entre páginas distintas do histórico.
-- **Implementado no código:** RF01–RF08. Saída usa `almox_register_exit` para validar saldo, setor e permissão no banco; grava movimento negativo, saldo, versão, auditoria e resultado idempotente na mesma transação. A tela exige revisão antes do envio e mostra o destino no histórico.
+- **RF10:** a rota administrativa `/movimentacoes/ajuste` registra a contagem física e o motivo. `almox_adjust_stock_by_count` verifica a versão lida sob bloqueios na ordem comando → produto → saldo; se houver alteração concorrente, responde `STOCK_VERSION_CHANGED` e exige nova conferência. Saldo, movimento, auditoria e resultado idempotente são atômicos.
+- **RF11:** `/movimentacoes` consulta por intervalo de datas local, produto (nome/SKU), tipo, responsável e setor. A RPC filtra e pagina no banco e retorna os vínculos de estorno, inclusive quando o par está em outra página.
+- **Implementado no código:** RF01–RF11. Saída usa `almox_register_exit` para validar saldo, setor e permissão no banco; grava movimento negativo, saldo, versão, auditoria e resultado idempotente na mesma transação. A tela exige revisão antes do envio e mostra o destino no histórico.
 - **Pendente de validação integrada:** aplicar migrations em Supabase local/homologação e verificar concorrência, replay, rollback de auditoria e matriz de acesso. O ambiente usado nesta edição não dispõe de Docker/Supabase CLI.
 - **Qualidade frontend:** scripts disponíveis `dev`, `build`, `typecheck`, `test`, `lint`. Cobertura automatizada de banco/harness integrado pode exigir ambiente Supabase específico.
 - **Privacidade/segredos:** sem `service_role` no frontend; sem senhas/tokens/chaves no repo.
@@ -145,6 +152,7 @@ npx supabase db reset   # aplica migrations + supabase/seed.sql
 - Checks SQL RNF01: `supabase/tests/rf01_rf04_permission_checks.sql`
 - Checks SQL RF08: `supabase/tests/rf08_exit_checks.sql`; roteiro manual: `docs/demo-rf08.md`
 - Checks SQL RF09: `supabase/tests/rf09_reversal_checks.sql`; contrato, RNFs e roteiro: `docs/demo-rf09.md`
+- RF10/RF11: cenários de validação após `supabase db reset` em `docs/demo-rf10-rf11.md` (acesso, concorrência, idempotência, auditoria, filtros, paginação e vínculos do histórico).
 
 ## Segurança e dados
 - Sem cadastro público; perfis controlados administrativamente.
@@ -155,4 +163,4 @@ npx supabase db reset   # aplica migrations + supabase/seed.sql
 
 ## Planejamento
 - `PLAN.md` / `TASKS.md` / `CONTEXT.md` — apoio local do agente (gitignored).
-- Próximas entregas: homologação RF08/RF09 e RF10+ (contagem e consultas ampliadas conforme backlog).
+- Próximas entregas: homologação integrada RF08–RF11 e validações operacionais dos requisitos seguintes.

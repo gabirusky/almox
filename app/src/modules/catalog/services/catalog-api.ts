@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import type { Category, Department, PaginatedProducts, Product, ProductFormValues, ProductHistory, ProductListFilters, StockMovement, ReversalResult } from "../types";
+import type { Category, Department, PaginatedProducts, Product, ProductFormValues, ProductHistory, ProductListFilters, StockMovement, ReversalResult, StockAdjustmentResult, MovementSearchFilters, MovementSearchResult } from "../types";
 
 export async function listCategories() {
   const { data, error } = await supabase.from("categories").select("*").order("active", { ascending: false }).order("name");
@@ -150,6 +150,39 @@ export async function reverseMovement(input: { movementId: string; reason: strin
   });
   if (error) throw error;
   return data as ReversalResult;
+}
+
+export async function adjustStockByCount(input: {
+  productId: string;
+  countedQuantity: string;
+  expectedVersion: number;
+  reason: string;
+  operationKey: string;
+}): Promise<StockAdjustmentResult> {
+  const { data, error } = await supabase.rpc("almox_adjust_stock_by_count", {
+    p_product_id: input.productId,
+    p_counted_quantity: input.countedQuantity,
+    p_expected_version: input.expectedVersion,
+    p_reason: input.reason.trim(),
+    p_operation_key: input.operationKey,
+  });
+  if (error) throw error;
+  return data as StockAdjustmentResult;
+}
+
+export async function searchStockMovements(filters: MovementSearchFilters): Promise<MovementSearchResult> {
+  const { data, error } = await supabase.rpc("almox_search_stock_movements", {
+    p_from: filters.from ?? null,
+    p_to_exclusive: filters.toExclusive ?? null,
+    p_product: filters.product || null,
+    p_kind: filters.kind || null,
+    p_actor: filters.actor || null,
+    p_department: filters.department || null,
+    p_page: filters.page,
+    p_page_size: filters.pageSize,
+  });
+  if (error) throw error;
+  return data as MovementSearchResult;
 }
 
 export async function registerExit(input: {

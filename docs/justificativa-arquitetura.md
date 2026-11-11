@@ -1,6 +1,6 @@
 ## Justificativa de Arquitetura (ALMOX)
 
-> Projeto em andamento (RF01–RF07 consolidados; RF08/RF09 implementados no código e pendentes de validação integrada no Supabase). As decisões priorizam integridade de estoque, rastreabilidade e segurança para um almoxarifado único (MVP), conforme análise de requisitos.
+> Projeto em andamento (RF01–RF11 implementados no código; RF08–RF11 pendentes de validação integrada no Supabase). As decisões priorizam integridade de estoque, rastreabilidade e segurança para um almoxarifado único (MVP), conforme análise de requisitos.
 
 ### 1. Frontend (`app/`)
 
@@ -22,7 +22,7 @@
 | **Supabase Auth** | Autenticação integrada (e-mail/senha, sessão/JWT, recuperação). | Identidade confiável para atrelar autor às operações e perfis (`admin`/`employee`), sem implementar auth do zero. | Dependência de serviço gerenciado; configuração local versionada (`supabase/config.toml`, signup desabilitado). |
 | **PostgreSQL** | Banco relacional transacional com constraints, locks e funções. | Modelo natural para produtos, saldos, movimentações e auditoria; garante invariantes (ex.: saldo não negativo, SKU único) e consultas paginadas/indexadas. | Exige cuidado em modelagem/migrations; mitigado com SQL versionado em `supabase/migrations/`. |
 | **PostgREST** | API de dados sobre o schema com base em permissões/RLS. | Leitura segura e direta de catálogos/saldos/históricos respeitando políticas, reduzindo backend intermediário para consultas. | Escritas críticas não devem ficar soltas no cliente; por isso comandos de domínio usam RPC. |
-| **RPC (funções PostgreSQL)** | Execução de comandos de domínio no banco (`almox_create_product`, `almox_register_entry/exit`, `almox_reverse_movement`). | Centraliza fluxos atômicos e idempotentes (ex.: `stock_commands`, hash de operação, travas produto→saldo) e retorna resultado consistente ao reenvio. | Lógica concentrada em SQL/plpgsql; exige testes/migrations disciplinados (`supabase/tests/`, roteiros em `docs/`). |
+| **RPC (funções PostgreSQL)** | Execução de comandos e consultas de domínio no banco (`almox_create_product`, `almox_register_entry/exit`, `almox_reverse_movement`, `almox_adjust_stock_by_count`, `almox_search_stock_movements`). | Centraliza fluxos atômicos e idempotentes (ex.: `stock_commands`, hash de operação, travas comando→produto→saldo), valida contagens concorrentes e pagina consultas operacionais. | Lógica concentrada em SQL/plpgsql; exige testes/migrations disciplinados (`supabase/tests/`, roteiros em `docs/`). |
 
 ### 3. Regras críticas no PostgreSQL (fonte de verdade)
 

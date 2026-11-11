@@ -4,7 +4,7 @@ import { BrowserRouter, NavLink, Route, Routes } from "react-router";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/modules/access/auth-context";
 import { useAuth } from "@/modules/access/use-auth";
-import { PublicOnly, RequireAuth } from "@/modules/access/guards";
+import { PublicOnly, RequireAuth, RequireRole } from "@/modules/access/guards";
 import { InactiveAccessPage, MisconfiguredPage } from "@/modules/access/pages/AccessStatusPages";
 import { LoginPage } from "@/modules/access/pages/LoginPage";
 import { RecoverPasswordPage } from "@/modules/access/pages/RecoverPasswordPage";
@@ -14,6 +14,8 @@ import { ProductsPage } from "@/modules/catalog/pages/ProductsPage";
 import { ProductDetailsPage } from "@/modules/catalog/pages/ProductDetailsPage";
 import { NewEntryPage } from "@/modules/catalog/pages/NewEntryPage";
 import { NewExitPage } from "@/modules/catalog/pages/NewExitPage";
+import { InventoryCountPage } from "@/modules/catalog/pages/InventoryCountPage";
+import { MovementsHistoryPage } from "@/modules/catalog/pages/MovementsHistoryPage";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +34,8 @@ function Nav() {
               <NavLink to="/produtos" className={({ isActive }) => `rounded px-2 py-1 ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-100"}`}>Produtos</NavLink>
               <NavLink to="/movimentacoes/nova" className={({ isActive }) => `rounded px-2 py-1 ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-100"}`}>Nova entrada</NavLink>
               <NavLink to="/movimentacoes/saida" className={({ isActive }) => `rounded px-2 py-1 ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-100"}`}>Nova saída</NavLink>
+              <NavLink to="/movimentacoes" end className={({ isActive }) => `rounded px-2 py-1 ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-100"}`}>Histórico</NavLink>
+              {profile?.role === "admin" ? <NavLink to="/movimentacoes/ajuste" className={({ isActive }) => `rounded px-2 py-1 ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-100"}`}>Contagem física</NavLink> : null}
               <NavLink to="/categorias" className={({ isActive }) => `rounded px-2 py-1 ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-100"}`}>Categorias</NavLink>
               <NavLink to="/setores" className={({ isActive }) => `rounded px-2 py-1 ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-100"}`}>Setores</NavLink>
               <span className="hidden px-2 text-gray-600 lg:inline">{profile?.display_name} ({profile?.role})</span>
@@ -92,6 +96,8 @@ export default function App() {
               <Route path="/produtos/:id" element={<RequireAuth><ProductDetailsPage /></RequireAuth>} />
               <Route path="/movimentacoes/nova" element={<RequireAuth><NewEntryPage /></RequireAuth>} />
               <Route path="/movimentacoes/saida" element={<RequireAuth><NewExitPage /></RequireAuth>} />
+              <Route path="/movimentacoes" element={<RequireAuth><MovementsHistoryPage /></RequireAuth>} />
+              <Route path="/movimentacoes/ajuste" element={<RequireAuth><RequireRole role="admin"><InventoryCountPage /></RequireRole></RequireAuth>} />
               <Route path="/categorias" element={<RequireAuth><CategoriesPage /></RequireAuth>} />
               <Route path="/setores" element={<RequireAuth><DepartmentsPage /></RequireAuth>} />
               <Route path="/app" element={<RequireAuth><HomePage /></RequireAuth>} />
