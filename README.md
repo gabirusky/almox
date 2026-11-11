@@ -2,7 +2,7 @@
 
 Sistema web para controle interno de estoque com rastreabilidade (autor, data/hora do servidor, motivo e efeito de cada operação), perfis `admin`/`employee` e regras de consistência aplicadas no banco.
 
-> **Status:** análise concluída; base implementada até **RF07** (acesso, catálogo, consulta, saldo/histórico e entrada atômica). Último commit de docs/estado: `1bc5437` — `update: docs, README and handoff md to reflect implementation status up to RF07` (arquivos: `README.md`, `app/README.md`, `docs/rf05-rf06-handoff.md`). Documento-fonte: `Análise de Requisitos e Arquitetura de Software.md`.
+> **Status:** base implementada até **RF08** (acesso, catálogo, consulta, saldo/histórico, entrada e saída). RF08 requer aplicação da migration e validação integrada no Supabase antes de uso real. Documento-fonte: `Análise de Requisitos e Arquitetura de Software.md`.
 
 ## Objetivo (MVP)
 Consulta confiável de saldo, movimentações rastreáveis e correções auditáveis em um único almoxarifado (escopo analisado RF01–RF16). Fora do MVP: multi-depósito, compras/fiscal, patrimônio individual, lotes/séries, anexos, aprovações, offline, ERP.
@@ -18,14 +18,15 @@ Consulta confiável de saldo, movimentações rastreáveis e correções auditá
 | RF05 | P0 | Consulta de produtos: busca/filtros, situação, ordenação e paginação | implementado |
 | RF06 | P0 | Detalhe do produto: saldo atual e histórico de movimentações paginado/ordenado | implementado (base de leitura/histórico) |
 | RF07 | P0 | Entrada de estoque atômica, auditável e idempotente | implementado |
+| RF08 | P0 | Saída com produto, quantidade, setor, recebedor e motivo | implementado no código; validação integrada pendente |
 
-## Requisitos não funcionais atrelados (RF01–RF04)
+## Requisitos não funcionais atrelados (RF01–RF08)
 
 | NFR | Aplicação no recorte |
 |---|---|
 | RNF01 Segurança | Rotas/dados protegidos exigem identidade válida e perfil ativo; matriz anônimo/funcionário/admin/inativo verificada via API. |
-| RNF02 Integridade | Escritas compostas (ex.: produto + saldo zero) atômicas no banco. |
-| RNF03 Concorrência | Modelo preparado para bloqueio/versionamento em movimentações (RF07+). |
+| RNF02 Integridade | Movimentação, saldo, comando idempotente e auditoria atômicos no banco. |
+| RNF03 Concorrência | Bloqueio do produto/saldo e rechecagem do saldo para impedir duas saídas sobre a mesma quantidade. |
 | RNF04 Rastreabilidade | Alterações concluídas registram autor, horário do servidor, ação e antes/depois (auditoria no banco). |
 | RNF05 Desempenho | Consultas pagináveis/indexadas; meta p95 validada em homologação (E7). |
 | RNF06 Usabilidade | Interface PT-BR, erros claros, confirmação antes de inativar. |
@@ -62,7 +63,7 @@ app/
     components/ui/        # base shadcn/ui
     modules/
       access/             # RF01/RF02 (auth, guards, perfis/sessão)
-      catalog/            # RF03–RF07 (produtos, categorias, setores, detalhe, entrada)
+      catalog/            # RF03–RF08 (produtos, categorias, setores, detalhe, entrada, saída)
       shared/             # erros, confirmações, utilitários comuns
 supabase/
   migrations/             # SQL versionado (schema, RLS, auditoria, domínio, histórico, entradas)
@@ -76,6 +77,7 @@ docs/                     # handoffs e roteiros de demo
 - `/login`, `/recuperar-senha`, `/acesso-inativo`, `/configuracao` — acesso/estado
 - `/produtos`, `/produtos/:id` — consulta, cadastro/edição/inativação (admin), saldo e histórico
 - `/movimentacoes/nova` — registro de entrada (RF07)
+- `/movimentacoes/saida` — registro de saída (RF08)
 - `/categorias`, `/setores` — manutenção administrativa
 - `/app` — área autenticada (alias/home protegida)
 
@@ -126,9 +128,11 @@ npx supabase db reset   # aplica migrations + supabase/seed.sql
 - `20261109201909_t040_t045_domain_logic.sql` — regras de domínio/RPC catálogo
 - `20261110190000_t094_t098_rf06_stock_history.sql` — histórico de movimentações (base RF06)
 - `20261110191000_t121_t128_rf07_entries.sql` — comandos/entrada atômica e idempotente (RF07)
+- `20261110192000_rf08_exits.sql` — saída atômica/idempotente e fechamento de escrita direta no saldo (RF08)
 
 ## Estado e notas
-- **Implementado:** RF01–RF07 (conforme rotas, serviços e migrations atuais). Autorização final no banco (RLS/RPC/constraints/triggers).
+- **Implementado no código:** RF01–RF08. Saída usa `almox_register_exit` para validar saldo, setor e permissão no banco; grava movimento negativo, saldo, versão, auditoria e resultado idempotente na mesma transação. A tela exige revisão antes do envio e mostra o destino no histórico.
+- **Pendente de validação integrada:** aplicar migrations em Supabase local/homologação e verificar concorrência, replay, rollback de auditoria e matriz de acesso. O ambiente usado nesta edição não dispõe de Docker/Supabase CLI.
 - **Qualidade frontend:** scripts disponíveis `dev`, `build`, `typecheck`, `test`, `lint`. Cobertura automatizada de banco/harness integrado pode exigir ambiente Supabase específico.
 - **Privacidade/segredos:** sem `service_role` no frontend; sem senhas/tokens/chaves no repo.
 
@@ -136,6 +140,7 @@ npx supabase db reset   # aplica migrations + supabase/seed.sql
 - Demo manual RF01–RF04: `docs/demo-rf01-rf04.md`
 - Handoff RF05–RF06 (histórico/estado atual): `docs/rf05-rf06-handoff.md`
 - Checks SQL RNF01: `supabase/tests/rf01_rf04_permission_checks.sql`
+- Checks SQL RF08: `supabase/tests/rf08_exit_checks.sql`; roteiro manual: `docs/demo-rf08.md`
 
 ## Segurança e dados
 - Sem cadastro público; perfis controlados administrativamente.
@@ -146,4 +151,4 @@ npx supabase db reset   # aplica migrations + supabase/seed.sql
 
 ## Planejamento
 - `PLAN.md` / `TASKS.md` / `CONTEXT.md` — apoio local do agente (gitignored).
-- Próximas entregas seguem análise: RF08+ (movimentações adicionais, auditoria/consultas ampliadas, correções/rastreabilidade conforme backlog).
+- Próximas entregas seguem análise: RF09+ (estorno, contagem e consultas ampliadas conforme backlog).

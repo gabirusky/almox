@@ -13,6 +13,7 @@ import { DepartmentsPage } from "@/modules/catalog/pages/DepartmentsPage";
 import { ProductsPage } from "@/modules/catalog/pages/ProductsPage";
 import { ProductDetailsPage } from "@/modules/catalog/pages/ProductDetailsPage";
 import { NewEntryPage } from "@/modules/catalog/pages/NewEntryPage";
+import { NewExitPage } from "@/modules/catalog/pages/NewExitPage";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ function Nav() {
             <>
               <NavLink to="/produtos" className={({ isActive }) => `rounded px-2 py-1 ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-100"}`}>Produtos</NavLink>
               <NavLink to="/movimentacoes/nova" className={({ isActive }) => `rounded px-2 py-1 ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-100"}`}>Nova entrada</NavLink>
+              <NavLink to="/movimentacoes/saida" className={({ isActive }) => `rounded px-2 py-1 ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-100"}`}>Nova saída</NavLink>
               <NavLink to="/categorias" className={({ isActive }) => `rounded px-2 py-1 ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-100"}`}>Categorias</NavLink>
               <NavLink to="/setores" className={({ isActive }) => `rounded px-2 py-1 ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-100"}`}>Setores</NavLink>
               <span className="hidden px-2 text-gray-600 lg:inline">{profile?.display_name} ({profile?.role})</span>
@@ -89,6 +91,7 @@ export default function App() {
               <Route path="/produtos" element={<RequireAuth><ProductsPage /></RequireAuth>} />
               <Route path="/produtos/:id" element={<RequireAuth><ProductDetailsPage /></RequireAuth>} />
               <Route path="/movimentacoes/nova" element={<RequireAuth><NewEntryPage /></RequireAuth>} />
+              <Route path="/movimentacoes/saida" element={<RequireAuth><NewExitPage /></RequireAuth>} />
               <Route path="/categorias" element={<RequireAuth><CategoriesPage /></RequireAuth>} />
               <Route path="/setores" element={<RequireAuth><DepartmentsPage /></RequireAuth>} />
               <Route path="/app" element={<RequireAuth><HomePage /></RequireAuth>} />

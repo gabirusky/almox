@@ -1,6 +1,6 @@
 # Handoff RF05–RF06 (histórico / estado atual)
 
-> **Status:** RF05 e RF06 implementados no código/migrations atuais; documento alinhado ao commit `1bc5437` (`update: docs, README and handoff md to reflect implementation status up to RF07`). Registra entregas e continuidade para RF08+.
+> **Status:** RF05 e RF06 implementados; RF07 entregue e RF08 implementado no código, ainda sem verificação integrada no Supabase. Registra as interfaces para RF09+.
 
 ## Base entregue
 - **RF01–RF04:** auth/perfis/guards + catálogo (`categories`, `departments`, `products`, `stock_balances`, `audit_events`), RPC `almox_create_product`, regras RLS/RN14/RN15.
@@ -14,6 +14,7 @@
 - DB: migrations em `supabase/migrations/` (ver `README.md` raiz para ordem)
 
 ## Próximos slices (sugestão)
-- **RF08–RF10:** saídas/ajustes/estornos e demais comandos de movimentação sobre `stock_movements` + atualização consistente de saldo.
+- **RF08:** código de saída em `NewExitPage`, `almox_register_exit` e migration `20261110192000_rf08_exits.sql`; aplicar e validar em Supabase local/homologação antes de considerar o fluxo integrado.
+- **RF09–RF10:** estornos/ajustes sobre `stock_movements` + atualização consistente de saldo.
 - **RF11–RF13+:** ampliar auditoria operacional, validações de concorrência/idempotência e relatórios conforme análise.
 - Manter autorização no banco, snapshots históricos imutáveis e sem `service_role` no frontend.

@@ -1,6 +1,6 @@
 # ALMOX — App (frontend)
 
-Frontend React + TypeScript + Vite do ALMOX (estado atual: até **RF07** — acesso, catálogo, consulta, saldo/histórico e entrada atômica).
+Frontend React + TypeScript + Vite do ALMOX (código até **RF08** — acesso, catálogo, consulta, saldo/histórico, entrada e saída). A saída depende da migration RF08 aplicada no Supabase.
 
 ## Requisitos
 - Node.js 20+ (recomendado 22 LTS)
@@ -25,7 +25,7 @@ React 19, Vite 8, TypeScript ~7 (strict), React Router 8, TanStack Query 5, Reac
 
 ## Estrutura relevante
 - `src/modules/access/` — autenticação, sessão/perfil, guards
-- `src/modules/catalog/` — produtos, categorias, setores, detalhe/histórico, nova entrada
+- `src/modules/catalog/` — produtos, categorias, setores, detalhe/histórico, entrada e saída
 - `src/modules/shared/` — erros e componentes compartilhados
 
 Consulte `../README.md` para escopo, migrations Supabase e notas de segurança.

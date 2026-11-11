@@ -133,6 +133,26 @@ export async function registerEntry(input: {
   return data as { product_id: string; quantity: number | string; balance: number | string; version: number; kind: "ENTRADA" };
 }
 
+export async function registerExit(input: {
+  productId: string;
+  quantity: string;
+  departmentId: string;
+  recipientRef: string;
+  reason: string;
+  operationKey: string;
+}) {
+  const { data, error } = await supabase.rpc("almox_register_exit", {
+    p_product_id: input.productId,
+    p_quantity: input.quantity,
+    p_department_id: input.departmentId,
+    p_recipient_ref: input.recipientRef,
+    p_reason: input.reason,
+    p_operation_key: input.operationKey,
+  });
+  if (error) throw error;
+  return data as { movement_id: string; product_id: string; quantity: number | string; balance: number | string; version: number; kind: "SAIDA" };
+}
+
 export async function createProduct(values: ProductFormValues) {
   const { error } = await supabase.rpc("almox_create_product", {
     p_sku: values.sku,

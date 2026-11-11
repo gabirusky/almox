@@ -9,6 +9,7 @@ export function getErrorMessage(error: unknown, fallback = "Ocorreu um erro ines
   if (message.includes("PRODUCT_INACTIVATION_REQUIRES_ZERO_BALANCE")) return "Não é possível inativar: o saldo do produto deve ser zero.";
   if (message.includes("CATEGORY_INACTIVE_OR_NOT_FOUND")) return "Selecione uma categoria ativa.";
   if (message.includes("PRODUCT_UNIT_LOCKED_AFTER_FIRST_MOVEMENT")) return "A unidade não pode ser alterada após a primeira movimentação.";
+  if (message.includes("ACTIVE_PROFILE_REQUIRED")) return "Sua sessão não está ativa para realizar esta operação.";
   if (message.includes("FORBIDDEN") || code === "42501") return "Você não tem permissão para realizar esta operação.";
   if (message.includes("products_sku_normalized_uidx") || message.includes("duplicate key") && message.toLowerCase().includes("sku")) return "SKU já cadastrado (inclusive entre produtos inativos).";
   if (message.includes("categories_name_normalized_uidx") || (message.includes("duplicate key") && message.toLowerCase().includes("categories"))) return "Já existe uma categoria com este nome.";
@@ -19,10 +20,17 @@ export function getErrorMessage(error: unknown, fallback = "Ocorreu um erro ines
   if (message.includes("ENTRY_QUANTITY_MUST_BE_INTEGER")) return "A unidade deste produto exige uma quantidade inteira.";
   if (message.includes("ENTRY_ORIGIN_REQUIRED")) return "Informe a origem da entrada.";
   if (message.includes("ENTRY_REASON_REQUIRED")) return "Informe o motivo da entrada.";
+  if (message.includes("EXIT_QUANTITY_MUST_BE_POSITIVE")) return "Informe uma quantidade positiva.";
+  if (message.includes("EXIT_QUANTITY_INVALID_PRECISION")) return "A quantidade deve ter até três casas decimais e caber no limite do estoque.";
+  if (message.includes("EXIT_QUANTITY_MUST_BE_INTEGER")) return "A unidade deste produto exige uma quantidade inteira.";
+  if (message.includes("INSUFFICIENT_STOCK")) return "Saldo insuficiente. Confira o saldo atual e ajuste a quantidade.";
+  if (message.includes("EXIT_DEPARTMENT_REQUIRED") || message.includes("DEPARTMENT_INACTIVE_OR_NOT_FOUND")) return "Selecione um setor ativo.";
+  if (message.includes("EXIT_RECIPIENT_INVALID")) return "Informe o recebedor (até 240 caracteres).";
+  if (message.includes("EXIT_REASON_INVALID")) return "Informe o motivo da saída (até 500 caracteres).";
+  if (message.includes("OPERATION_KEY_INVALID")) return "Não foi possível identificar a operação. Recarregue a página e tente novamente.";
   if (message.includes("PRODUCT_INACTIVE")) return "Produto inativo não aceita movimentações.";
   if (message.includes("PRODUCT_NOT_FOUND")) return "Produto não encontrado.";
   if (message.includes("OPERATION_KEY_REUSED_WITH_DIFFERENT_CONTENT")) return "A chave da operação já foi usada com outros dados.";
-  if (message.includes("ACTIVE_PROFILE_REQUIRED")) return "Sua sessão não está ativa para realizar esta operação.";
   if (message.includes("Failed to fetch") || message.includes("NetworkError")) return "Falha de conexão. Verifique sua rede e tente novamente.";
   return fallback;
 }

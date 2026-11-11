@@ -15,4 +15,11 @@ describe("getErrorMessage (RF03/RF04 domain feedback)", () => {
   it("falls back safely", () => {
     expect(getErrorMessage({}, "fallback")).toBe("fallback");
   });
+
+  it("explains RF08 rejections without exposing database messages", () => {
+    expect(getErrorMessage({ message: "INSUFFICIENT_STOCK" })).toContain("Saldo insuficiente");
+    expect(getErrorMessage({ message: "DEPARTMENT_INACTIVE_OR_NOT_FOUND" })).toContain("setor ativo");
+    expect(getErrorMessage({ message: "EXIT_QUANTITY_MUST_BE_INTEGER" })).toContain("inteira");
+    expect(getErrorMessage({ message: "OPERATION_KEY_REUSED_WITH_DIFFERENT_CONTENT" })).toContain("chave");
+  });
 });
