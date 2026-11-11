@@ -33,6 +33,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             {status === "authenticated" ? (
               <>
                 <NavItem to="/produtos">Produtos</NavItem>
+                <NavItem to="/movimentacoes">Operações</NavItem>
                 <NavItem to="/movimentacoes/nova">Entrada</NavItem>
                 <NavItem to="/movimentacoes/saida">Saída</NavItem>
                 <NavItem to="/categorias">Categorias</NavItem>

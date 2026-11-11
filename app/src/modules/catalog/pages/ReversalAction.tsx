@@ -33,7 +33,8 @@ export function ReversalAction({ movement, unit }: { movement: StockMovement; un
       void Promise.all([
         queryClient.invalidateQueries({ queryKey: ["products"] }),
         queryClient.invalidateQueries({ queryKey: ["product-history", result.product_id] }),
-      ]).catch(() => setFeedback({ type: "success", text: `Estorno ${result.movement_id} confirmado. Recarregue o histórico para consultar o saldo atual.` }))
+        queryClient.invalidateQueries({ queryKey: ["movements"] }),
+      ]).catch(() => setFeedback({ type: "success", text: `Estorno ${result.movement_id} confirmado. Recarregue para consultar o saldo atual.` }))
     },
     onError: (error) => {
       setFeedback({ type: "danger", text: getErrorMessage(error, "Não foi possível confirmar o resultado. Tente novamente com a mesma justificativa para verificar este estorno.") })

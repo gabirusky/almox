@@ -71,6 +71,7 @@ export function NewExitPage() {
       form.reset({ productId: "", quantity: "", departmentId: "", recipientRef: "", reason: "" })
       await queryClient.invalidateQueries({ queryKey: ["products"] })
       await queryClient.invalidateQueries({ queryKey: ["product-history", result.product_id] })
+      await queryClient.invalidateQueries({ queryKey: ["movements"] })
     },
     onError: async (error) => {
       setFeedback({ type: "danger", text: getErrorMessage(error, "Não foi possível registrar a saída.") })

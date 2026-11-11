@@ -1,4 +1,4 @@
-import type { Category, Department, PaginatedProducts, Product, ProductFormValues, ProductHistory, ProductListFilters, ReversalResult, StockBalance, StockMovement } from "@/modules/catalog/types"
+import type { Category, Department, MovementLogFilters, MovementLogItem, PaginatedMovements, PaginatedProducts, Product, ProductFormValues, ProductHistory, ProductListFilters, ReversalResult, StockBalance, StockMovement } from "@/modules/catalog/types"
 import type { Profile } from "@/modules/access/types"
 
 type UserRecord = { id: string; email: string; password: string; profile: Profile }
@@ -215,5 +215,36 @@ export const mockApi = {
     const m: StockMovement = { id: uid("mov"), product_id: p.id, actor_id: actor.id, kind: "ESTORNO", delta, balance_before: before, balance_after: after, product_version: bal.version, reason: input.reason, origin: null, department_id: null, recipient_ref: null, document_ref: null, reversal_of: original.id, recorded_at: bal.updated_at, snapshots: { sku: p.sku, name: p.name, unit: p.unit, ...actorSnapshot(actor) } }
     store.movements.push(m); saveStore(store)
     return { movement_id: m.id, reversal_of: original.id, product_id: p.id, delta: String(delta), balance: String(after), version: bal.version, kind: "ESTORNO" }
+  },
+
+  listMovements(filters: MovementLogFilters = {}): PaginatedMovements {
+    const store = loadStore()
+    const page = Math.max(1, filters.page ?? 1)
+    const pageSize = Math.min(100, Math.max(1, filters.pageSize ?? 10))
+    let items = [...store.movements]
+    if (filters.productId) items = items.filter((m) => m.product_id === filters.productId)
+    if (filters.kind && filters.kind !== "all") items = items.filter((m) => m.kind === filters.kind)
+    if (filters.actorId) items = items.filter((m) => m.actor_id === filters.actorId)
+    if (filters.departmentId) items = items.filter((m) => m.department_id === filters.departmentId)
+    if (filters.dateFrom) {
+      const from = filters.dateFrom.includes("T") ? filters.dateFrom : `${filters.dateFrom}T00:00:00.000`
+      items = items.filter((m) => m.recorded_at >= from)
+    }
+    if (filters.dateTo) {
+      const to = filters.dateTo.includes("T") ? filters.dateTo : `${filters.dateTo}T23:59:59.999`
+      items = items.filter((m) => m.recorded_at <= to)
+    }
+    items.sort((a, b) => b.recorded_at.localeCompare(a.recorded_at) || b.id.localeCompare(a.id))
+    const total = items.length
+    const start = (page - 1) * pageSize
+    const slice = items.slice(start, start + pageSize)
+    const ids = new Set(slice.map((m) => m.id))
+    const reversedBy: Record<string, string> = {}
+    for (const m of store.movements) if (m.reversal_of && ids.has(m.reversal_of)) reversedBy[m.reversal_of] = m.id
+    const enriched: MovementLogItem[] = slice.map((m) => {
+      const p = store.products.find((x) => x.id === m.product_id)
+      return { ...m, products: p ? { id: p.id, sku: p.sku, name: p.name, unit: p.unit, active: p.active } : null }
+    })
+    return { items: enriched, total, page, pageSize, reversedBy }
   },
 }

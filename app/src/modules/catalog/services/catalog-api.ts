@@ -1,7 +1,16 @@
 import { supabase } from "@/lib/supabase";
 import { isOfflineMode } from "@/lib/mock-mode";
 import { mockApi } from "@/lib/mock-store";
-import type { Category, Department, PaginatedProducts, Product, ProductFormValues, ProductHistory, ProductListFilters, StockMovement, ReversalResult } from "../types";
+import type { Category, Department, MovementLogFilters, PaginatedMovements, PaginatedProducts, Product, ProductFormValues, ProductHistory, ProductListFilters, StockMovement, ReversalResult } from "../types";
+
+async function fetchReversedBy(ids: string[]) {
+  if (ids.length === 0) return {} as Record<string, string>;
+  const { data, error } = await supabase.from("stock_movements").select("id,reversal_of").in("reversal_of", ids);
+  if (error) throw error;
+  const map: Record<string, string> = {};
+  for (const row of data ?? []) map[row.reversal_of as string] = row.id as string;
+  return map;
+}
 
 export async function listCategories() {
   if (isOfflineMode()) return mockApi.listCategories();
@@ -116,13 +125,7 @@ export async function getProductHistory(productId: string, page = 1, pageSize = 
   ]);
   if (movements.error) throw movements.error;
   const ids = (movements.data ?? []).map((movement) => movement.id as string);
-  const reversedBy: Record<string, string> = {};
-  // Reversals may be on another page; never infer eligibility from this page alone.
-  if (ids.length > 0) {
-    const reversals = await supabase.from("stock_movements").select("id,reversal_of").in("reversal_of", ids);
-    if (reversals.error) throw reversals.error;
-    for (const reversal of reversals.data ?? []) reversedBy[reversal.reversal_of as string] = reversal.id as string;
-  }
+  const reversedBy = await fetchReversedBy(ids);
   return {
     reversedBy,
     product,
@@ -131,6 +134,43 @@ export async function getProductHistory(productId: string, page = 1, pageSize = 
     page: safePage,
     pageSize: safePageSize,
   };
+}
+
+function movementDateBound(value: string | undefined, endOfDay: boolean) {
+  if (!value) return undefined;
+  if (value.includes("T")) return value;
+  return `${value}${endOfDay ? "T23:59:59.999" : "T00:00:00.000"}`;
+}
+
+export async function listMovements(filters: MovementLogFilters = {}): Promise<PaginatedMovements> {
+  if (isOfflineMode()) return mockApi.listMovements(filters);
+  const page = Math.max(1, filters.page ?? 1);
+  const pageSize = Math.min(100, Math.max(1, filters.pageSize ?? 10));
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  let query = supabase
+    .from("stock_movements")
+    .select("*, products(id,sku,name,unit,active)", { count: "exact" })
+    .order("recorded_at", { ascending: false })
+    .order("id", { ascending: false })
+    .range(from, to);
+
+  if (filters.productId) query = query.eq("product_id", filters.productId);
+  if (filters.kind && filters.kind !== "all") query = query.eq("kind", filters.kind);
+  if (filters.actorId) query = query.eq("actor_id", filters.actorId);
+  if (filters.departmentId) query = query.eq("department_id", filters.departmentId);
+  const dateFrom = movementDateBound(filters.dateFrom, false);
+  const dateTo = movementDateBound(filters.dateTo, true);
+  if (dateFrom) query = query.gte("recorded_at", dateFrom);
+  if (dateTo) query = query.lte("recorded_at", dateTo);
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+  const items = (data ?? []) as unknown as PaginatedMovements["items"];
+  const ids = items.map((movement) => movement.id);
+  const reversedBy = await fetchReversedBy(ids);
+  return { items, total: count ?? 0, page, pageSize, reversedBy };
 }
 
 export async function registerEntry(input: {

@@ -12,6 +12,7 @@ import { ProductsPage } from "@/modules/catalog/pages/ProductsPage"
 import { ProductDetailsPage } from "@/modules/catalog/pages/ProductDetailsPage"
 import { NewEntryPage } from "@/modules/catalog/pages/NewEntryPage"
 import { NewExitPage } from "@/modules/catalog/pages/NewExitPage"
+import { OperationsLogPage } from "@/modules/catalog/pages/OperationsLogPage"
 import { AppShell } from "@/modules/shared/components/AppShell"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -68,6 +69,7 @@ export default function App() {
               <Route path="/recuperar-senha" element={<PublicOnly><RecoverPasswordPage /></PublicOnly>} />
               <Route path="/produtos" element={<RequireAuth><ProductsPage /></RequireAuth>} />
               <Route path="/produtos/:id" element={<RequireAuth><ProductDetailsPage /></RequireAuth>} />
+              <Route path="/movimentacoes" element={<RequireAuth><OperationsLogPage /></RequireAuth>} />
               <Route path="/movimentacoes/nova" element={<RequireAuth><NewEntryPage /></RequireAuth>} />
               <Route path="/movimentacoes/saida" element={<RequireAuth><NewExitPage /></RequireAuth>} />
               <Route path="/categorias" element={<RequireAuth><CategoriesPage /></RequireAuth>} />

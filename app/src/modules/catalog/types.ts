@@ -115,3 +115,26 @@ export interface ReversalResult {
   version: number;
   kind: "ESTORNO";
 }
+
+export interface MovementLogFilters {
+  page?: number;
+  pageSize?: number;
+  productId?: string;
+  kind?: MovementKind | "all";
+  actorId?: string;
+  departmentId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export interface MovementLogItem extends StockMovement {
+  products?: Pick<Product, "id" | "sku" | "name" | "unit" | "active"> | null;
+}
+
+export interface PaginatedMovements {
+  items: MovementLogItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  reversedBy: Record<string, string>;
+}

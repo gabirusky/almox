@@ -2,7 +2,7 @@
 
 Sistema web para controle interno de estoque com rastreabilidade (autor, data/hora do servidor, motivo e efeito de cada operação), perfis `admin`/`employee` e regras de consistência aplicadas no banco.
 
-> **Status:** código implementado até **RF09** (acesso, catálogo, consulta, saldo/histórico, entrada, saída e estorno). RF08/RF09 requerem aplicação das migrations e validação integrada no Supabase antes de uso real. Documento-fonte: `Análise de Requisitos e Arquitetura de Software.md`.
+> **Status:** código implementado até **RF09** (acesso, catálogo, consulta, saldo/histórico, entrada, saída e estorno) + **log global de operações** (consulta de movimentações com filtros/paginação, vínculos de estorno e ação administrativa elegível). RF08/RF09 e o log global requerem aplicação das migrations e validação integrada no Supabase para uso real. Documento-fonte: `Análise de Requisitos e Arquitetura de Software.md`.
 
 ## Objetivo (MVP)
 Consulta confiável de saldo, movimentações rastreáveis e correções auditáveis em um único almoxarifado (escopo analisado RF01–RF16). Fora do MVP: multi-depósito, compras/fiscal, patrimônio individual, lotes/séries, anexos, aprovações, offline, ERP.
@@ -20,6 +20,7 @@ Consulta confiável de saldo, movimentações rastreáveis e correções auditá
 | RF07 | P0 | Entrada de estoque atômica, auditável e idempotente | implementado |
 | RF08 | P0 | Saída com produto, quantidade, setor, recebedor e motivo | implementado no código; validação integrada pendente |
 | RF09 | P0 | Estorno integral administrativo, com justificativa e vínculo ao original | implementado no código; validação integrada pendente |
+| RF11 (base) | P1 | Consulta global de movimentações/histórico com filtros, paginação e rastreabilidade | implementado no código (UI/API/mock); validação integrada Supabase pendente |
 
 ## Requisitos não funcionais atrelados (RF01–RF09)
 
@@ -40,6 +41,7 @@ Consulta confiável de saldo, movimentações rastreáveis e correções auditá
 - **Frontend:** React 19 + TypeScript + Vite 8 (`app/`), Tailwind CSS 4, shadcn/ui, React Router, TanStack Query, React Hook Form + Zod.
 - **Backend (BaaS):** Supabase Auth + PostgreSQL + PostgREST/RPC.
 - **Regras críticas:** RLS, constraints, funções/triggers/RPC no PostgreSQL (fonte de verdade para autorização e invariantes). Frontend usa apenas chave publicável/anon + JWT; **nunca** `service_role` no cliente.
+- **Log de operações (global):** consulta paginada de `stock_movements` (usuários ativos, via RLS) com filtros (período, produto, tipo, responsável, setor), ordenação estável (`recorded_at desc, id desc`), exibição por snapshots/joins permitidos e resolução de vínculos de estorno (`reversal_of`/`reversedBy`) inclusive entre páginas/produtos. Estorno administrativo a partir do log reutiliza as mesmas garantias de RF09 (RPC, idempotência, elegibilidade e erros do banco).
 - **UI (Figma + shadcn):** protótipos no Figma, quando existirem, são usados apenas como inspiração de intenção visual e layout. A implementação deve ser reconstruída com componentes shadcn/ui padrão e reutilizáveis, priorizando consistência, acessibilidade e manutenção (servidor MCP do Figma conectado para consulta quando necessário).
 - **Identidade visual:** logo ALMOX aplicada no frontend (shell, páginas de acesso/estado e home), com assets em `app/assets/`, `app/src/assets/` e `app/public/`.
 
@@ -70,7 +72,7 @@ app/
     lib/                  # utilitários, cliente Supabase, modo/store mock offline
     modules/
       access/             # RF01/RF02 (auth, guards, perfis/sessão)
-      catalog/            # RF03–RF09 (produtos, categorias, setores, detalhe, entrada, saída, estorno)
+      catalog/            # RF03–RF09/RF11 base (produtos, categorias, setores, detalhe, operações, entrada, saída, estorno)
       shared/             # erros, formatação, confirmações, layout/estados reutilizáveis
 supabase/
   migrations/             # SQL versionado (schema, RLS, auditoria, domínio, histórico, entradas)
@@ -83,6 +85,7 @@ docs/                     # handoffs e roteiros de demo
 - `/` — início
 - `/login`, `/recuperar-senha`, `/acesso-inativo`, `/configuracao` — acesso/estado
 - `/produtos`, `/produtos/:id` — consulta, cadastro/edição/inativação (admin), saldo, histórico e estorno administrativo (RF09)
+- `/movimentacoes` — log global de operações (filtros, paginação, rastreabilidade e estorno elegível)
 - `/movimentacoes/nova` — registro de entrada (RF07)
 - `/movimentacoes/saida` — registro de saída (RF08)
 - `/categorias`, `/setores` — manutenção administrativa
@@ -137,7 +140,7 @@ npx supabase db reset   # aplica migrations + supabase/seed.sql
 - **Objetivo:** permitir navegação/demo local quando o Supabase não estiver disponível.
 - **Ativação:** automática quando `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` estão ausentes; também pode ser forçado com `VITE_OFFLINE_MODE=true`.
 - **Credenciais de demo (mock local):** `admin@almox.test` / `Test1234!` e `operador@almox.test` / `Test1234!`.
-- **Dados:** catálogo, saldos e movimentações fictícias pré-populadas para exercitar RF01–RF09 na UI (consulta, manutenção admin, entrada/saída, histórico e estorno).
+- **Dados:** catálogo, saldos e movimentações fictícias pré-populadas para exercitar RF01–RF09 e o log global de operações na UI (consulta, manutenção admin, entrada/saída, histórico por produto, operações com filtros e estorno).
 - **Persistência:** estado do mock salvo no navegador (`localStorage`, chaves `almox.offline.*`); limpar essas chaves restaura o seed.
 - **Limitação:** é uma simulação de frontend para demonstração/usabilidade — **não substitui** RLS, RPCs, constraints, transações, concorrência e demais garantias do PostgreSQL/Supabase. Para validação integrada/autoridade de regras, use o ambiente Supabase.
 
@@ -152,10 +155,11 @@ npx supabase db reset   # aplica migrations + supabase/seed.sql
 
 ## Estado e notas
 - **UI (new-ui):** frontend modernizado com design system "Ledger Bench" (tokens/tema, tipografia, shell compartilhado, primitivas e componentes reutilizáveis shadcn/ui), logo ALMOX e melhorias de acessibilidade/responsividade nas rotas existentes.
-- **Modo offline/mock:** suporte a demo local sem Supabase (auto ou `VITE_OFFLINE_MODE=true`) com dados fictícios e credenciais de teste para navegação dos fluxos RF01–RF09 na UI; não substitui validação/garantias do banco.
-- **RF09:** no histórico, administradores podem justificar e confirmar o estorno integral. A RPC `almox_reverse_movement` preserva o original, calcula o delta inverso, recusa saldo negativo/produto inativo/estorno duplicado/estorno de estorno e confirma saldo, auditoria e comando conjuntamente. Vínculos são exibidos mesmo entre páginas distintas do histórico.
-- **Implementado no código:** RF01–RF09. Saída usa `almox_register_exit` para validar saldo, setor e permissão no banco; grava movimento negativo, saldo, versão, auditoria e resultado idempotente na mesma transação. A tela exige revisão antes do envio e mostra o destino no histórico.
-- **Pendente de validação integrada:** aplicar migrations em Supabase local/homologação e verificar concorrência, replay, rollback de auditoria e matriz de acesso (especialmente RF08/RF09). Ambiente sem Docker/Supabase não valida esses cenários ponta a ponta.
+- **Log global de operações (`/movimentacoes`):** tela de consulta de todas as movimentações visíveis ao usuário ativo, com filtros combinados (período, produto, tipo, responsável, setor), paginação, ordenação por data/hora do servidor + identificador, rastreabilidade (autor, data, tipo, delta, saldo antes/depois, versão, origem/motivo, setor/recebedor quando aplicável) e vínculos de estorno resolvidos mesmo entre páginas/produtos. Administradores elegíveis podem estornar a partir do log com as mesmas regras de RF09; entradas/saídas/estornos invalidam e sincronizam catálogo, histórico do produto e log.
+- **Modo offline/mock:** suporte a demo local sem Supabase (auto ou `VITE_OFFLINE_MODE=true`) com dados fictícios e credenciais de teste para navegação dos fluxos RF01–RF09 e do log global na UI; não substitui validação/garantias do banco.
+- **RF09:** no histórico e no log global, administradores podem justificar e confirmar o estorno integral quando elegível. A RPC `almox_reverse_movement` preserva o original, calcula o delta inverso, recusa saldo negativo/produto inativo/estorno duplicado/estorno de estorno e confirma saldo, auditoria e comando conjuntamente. Vínculos são exibidos mesmo entre páginas distintas.
+- **Implementado no código:** RF01–RF09 e base RF11 (consulta global de operações). Saída usa `almox_register_exit` para validar saldo, setor e permissão no banco; grava movimento negativo, saldo, versão, auditoria e resultado idempotente na mesma transação. A tela exige revisão antes do envio e mostra o destino no histórico.
+- **Pendente de validação integrada:** aplicar migrations em Supabase local/homologação e verificar RLS/matriz de acesso, filtros/contagem/paginação em dados reais, concorrência, replay, rollback de auditoria e vínculo de estorno cross-page (especialmente RF08/RF09 e log global). Ambiente sem Docker/Supabase não valida esses cenários ponta a ponta.
 - **Qualidade frontend:** scripts disponíveis `dev`, `build`, `typecheck`, `test`, `lint`. Cobertura automatizada de banco/harness integrado pode exigir ambiente Supabase específico.
 - **Privacidade/segredos:** sem `service_role` no frontend; sem senhas/tokens/chaves no repo.
 

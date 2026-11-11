@@ -43,7 +43,7 @@ export function ProductDetailsPage() {
         back={<Link to="/produtos" className="text-sm text-signal underline underline-offset-2">← Voltar para produtos</Link>}
         title={product.name}
         description={<span className="font-mono text-xs">SKU {product.sku} · {product.categories?.name ?? "Sem categoria"}</span>}
-        actions={<div className="flex items-center gap-2"><ProductStatusBadge active={product.active} balance={quantity} />{product.active ? <Button asChild variant="outline"><Link to={`/movimentacoes/saida?produto=${product.id}`}>Registrar saída</Link></Button> : null}</div>}
+        actions={<div className="flex flex-wrap items-center gap-2"><ProductStatusBadge active={product.active} balance={quantity} /><Button asChild variant="outline"><Link to={`/movimentacoes?produto=${product.id}`}>Ver operações</Link></Button>{product.active ? <Button asChild variant="outline"><Link to={`/movimentacoes/saida?produto=${product.id}`}>Registrar saída</Link></Button> : null}</div>}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
