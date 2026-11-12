@@ -12,6 +12,7 @@ import {
   LogOut,
   Menu,
   ScrollText,
+  ShieldCheck,
   Tags,
   Users,
   X,
@@ -50,6 +51,7 @@ const groups: Array<{ title: string; items: NavEntry[] }> = [
     items: [
       { to: "/relatorios", label: "Relatórios CSV", icon: FileSpreadsheet, admin: true },
       { to: "/usuarios", label: "Usuários", icon: Users, admin: true },
+      { to: "/auditoria", label: "Auditoria", icon: ShieldCheck, admin: true },
     ],
   },
 ]

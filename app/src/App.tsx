@@ -24,6 +24,7 @@ import { AppShell } from "@/modules/shared/components/AppShell"
 import { LoadingSkeleton } from "@/modules/shared/components/States"
 import { Button } from "@/components/ui/button"
 import logo from "@/assets/logo_almox.png"
+import { AuditPage } from "@/modules/audit/AuditPage"
 
 const queryClient = new QueryClient()
 
@@ -117,6 +118,7 @@ export default function App() {
               <Route path="/setores" element={<RequireAuth><DepartmentsPage /></RequireAuth>} />
               <Route path="/relatorios" element={<RequireAuth><RequireRole role="admin"><ExportPage /></RequireRole></RequireAuth>} />
               <Route path="/usuarios" element={<RequireAuth><RequireRole role="admin"><UsersPage /></RequireRole></RequireAuth>} />
+              <Route path="/auditoria" element={<RequireAuth><RequireRole role="admin"><AuditPage /></RequireRole></RequireAuth>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </AppShell>
