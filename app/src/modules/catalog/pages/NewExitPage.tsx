@@ -29,6 +29,10 @@ const schema = z.object({
 
 type Values = z.infer<typeof schema>
 
+function emptyValues(): Values {
+  return { productId: "", quantity: "", departmentId: "", recipientRef: "", reason: "" }
+}
+
 export function NewExitPage() {
   const [searchParams] = useSearchParams()
   const queryClient = useQueryClient()
@@ -38,7 +42,7 @@ export function NewExitPage() {
   const [review, setReview] = useState<Values | null>(null)
   const form = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { productId: searchParams.get("produto") ?? "", quantity: "", departmentId: "", recipientRef: "", reason: "" },
+    defaultValues: { ...emptyValues(), productId: searchParams.get("produto") ?? "" },
   })
   const productId = useWatch({ control: form.control, name: "productId" })
   const departmentId = useWatch({ control: form.control, name: "departmentId" })
@@ -68,7 +72,7 @@ export function NewExitPage() {
       setFeedback({ type: "success", text: `Saída registrada (${result.movement_id}). Saldo após a operação: ${formatQuantity(result.balance)}.`, productId: result.product_id })
       setReview(null)
       operationKey.current = crypto.randomUUID()
-      form.reset({ productId: "", quantity: "", departmentId: "", recipientRef: "", reason: "" })
+      form.reset(emptyValues())
       await queryClient.invalidateQueries({ queryKey: ["products"] })
       await queryClient.invalidateQueries({ queryKey: ["product-history", result.product_id] })
       await queryClient.invalidateQueries({ queryKey: ["movements"] })
@@ -157,7 +161,7 @@ export function NewExitPage() {
             </div>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3 pt-1">
               <Button type="submit" disabled={mutation.isPending || product.isLoading || !product.data || departments.isLoading}>{mutation.isPending ? "Registrando..." : "Revisar e confirmar saída"}</Button>
-              <Button type="button" variant="outline" disabled={mutation.isPending} onClick={() => form.reset({ productId: "", quantity: "", origin: "", reason: "", documentRef: "" })}>Limpar formulário</Button>
+              <Button type="button" variant="outline" disabled={mutation.isPending} onClick={() => form.reset(emptyValues())}>Limpar formulário</Button>
             </div>
           </form>
         </CardContent>
