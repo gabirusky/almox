@@ -40,7 +40,7 @@ const balanceColumns: CsvColumn<BalanceExportRow>[] = [
   { key: "unit", label: "Unidade" },
   { key: "quantity", label: "Saldo", type: "number" },
   { key: "minimum_stock", label: "Estoque mínimo", type: "number" },
-  { key: "at_or_below_minimum", label: "No limite mínimo", type: "boolean" },
+  { key: "at_or_below_minimum", label: "Limite mínimo", type: "boolean" },
   { key: "location", label: "Localização" },
   { key: "active", label: "Ativo", type: "boolean" },
   { key: "version", label: "Versão do saldo", type: "number" },

@@ -84,7 +84,6 @@ function Brand() {
       <img src={logo} alt="" className="h-9 w-auto" />
       <span className="leading-tight">
         <span className="block font-heading text-lg font-semibold tracking-tight text-ink">ALMOX</span>
-        <span className="block font-mono text-[10px] uppercase tracking-[0.18em] text-muted">almoxarifado</span>
       </span>
     </NavLink>
   )

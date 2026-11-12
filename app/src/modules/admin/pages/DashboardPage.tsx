@@ -87,7 +87,6 @@ export function DashboardPage() {
         <div className="pointer-events-none absolute inset-0 opacity-[0.07] [background-image:linear-gradient(to_right,white_1px,transparent_1px),linear-gradient(to_bottom,white_1px,transparent_1px)] [background-size:28px_28px]" aria-hidden="true" />
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-2">
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-surface/70">Painel · RF14</p>
             <h1 id="dashboard-title" className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">Olá{firstName ? `, ${firstName}` : ""}.</h1>
             <p className="max-w-xl text-sm text-surface/80">
               {data
