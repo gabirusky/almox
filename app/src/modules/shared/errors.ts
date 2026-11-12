@@ -27,6 +27,18 @@ export function getErrorMessage(error: unknown, fallback = "Ocorreu um erro ines
   if (message.includes("MOVEMENT_DATE_RANGE_INVALID")) return "A data final deve ser igual ou posterior à data inicial.";
   if (message.includes("MOVEMENT_PAGE_INVALID")) return "A página solicitada não é válida.";
   if (message.includes("MOVEMENT_KIND_INVALID")) return "O tipo de movimentação selecionado não é válido.";
+  if (message.includes("EXPORT_ADMIN_REQUIRED")) return "Somente administradores ativos podem exportar relatórios.";
+  if (message.includes("EXPORT_FILTER_INVALID")) return "Os filtros da exportação não são válidos.";
+  if (message.includes("EXPORT_TOO_LARGE")) return "A consulta excede 50.000 linhas. Reduza o período ou aplique mais filtros.";
+  if (message.includes("USER_ADMIN_REQUIRED")) return "Somente administradores ativos podem gerenciar usuários.";
+  if (message.includes("LAST_ADMIN_REQUIRED")) return "Deve existir ao menos um administrador ativo. Promova outro usuário antes desta alteração.";
+  if (message.includes("USER_NOT_FOUND")) return "Usuário não encontrado.";
+  if (message.includes("USER_ALREADY_EXISTS")) return "Já existe uma conta com este e-mail.";
+  if (message.includes("INVITE_EMAIL_INVALID")) return "Informe um e-mail válido.";
+  if (message.includes("INVITE_NAME_INVALID")) return "Informe o nome de exibição (até 120 caracteres).";
+  if (message.includes("INVITE_FAILED") || message.includes("INVITE_AUTH_USER_MISMATCH")) return "Não foi possível enviar o convite. Tente novamente em instantes.";
+  if (message.includes("FUNCTION_MISCONFIGURED")) return "A função de convite não está configurada no servidor.";
+  if (message.includes("AUTH_REQUIRED")) return "Sua sessão expirou. Entre novamente.";
   if (message.includes("FORBIDDEN") || code === "42501") return "Você não tem permissão para realizar esta operação.";
   if (message.includes("products_sku_normalized_uidx") || message.includes("duplicate key") && message.toLowerCase().includes("sku")) return "SKU já cadastrado (inclusive entre produtos inativos).";
   if (message.includes("categories_name_normalized_uidx") || (message.includes("duplicate key") && message.toLowerCase().includes("categories"))) return "Já existe uma categoria com este nome.";

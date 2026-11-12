@@ -75,7 +75,10 @@ export async function listProducts(filters: ProductListFilters = {}): Promise<Pa
 
   let query = supabase
     .from("products")
-    .select("*, categories(id,name,active), stock_balances(product_id,quantity,version,updated_at)", { count: "exact" })
+    // "!inner" faz o filtro de saldo restringir os produtos (e não só o recurso embutido).
+    .select(filters.situation === "zero_balance"
+      ? "*, categories(id,name,active), stock_balances!inner(product_id,quantity,version,updated_at)"
+      : "*, categories(id,name,active), stock_balances(product_id,quantity,version,updated_at)", { count: "exact" })
     .order(sort, { ascending: direction === "asc" })
     .order("id", { ascending: true })
     .range(from, to);
@@ -212,6 +215,7 @@ export async function adjustStockByCount(input: {
   reason: string;
   operationKey: string;
 }): Promise<StockAdjustmentResult> {
+  if (isOfflineMode()) return mockApi.adjustStockByCount(input);
   const { data, error } = await supabase.rpc("almox_adjust_stock_by_count", {
     p_product_id: input.productId,
     p_counted_quantity: input.countedQuantity,

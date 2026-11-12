@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useMemo, useState } from "react"
-import { Link } from "react-router"
+import { Link, useSearchParams } from "react-router"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
@@ -55,7 +55,11 @@ export function ProductsPage() {
   const qc = useQueryClient()
   const [search, setSearch] = useState("")
   const [categoryId, setCategoryId] = useState("")
-  const [situation, setSituation] = useState<ProductSituation>("all")
+  const [searchParams] = useSearchParams()
+  const [situation, setSituation] = useState<ProductSituation>(() => {
+    const value = searchParams.get("situacao")
+    return value === "active" || value === "inactive" || value === "zero_balance" ? value : "all"
+  })
   const [sort, setSort] = useState<ProductSort>("name")
   const [direction, setDirection] = useState<"asc" | "desc">("asc")
   const [page, setPage] = useState(1)

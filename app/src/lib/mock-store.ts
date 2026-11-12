@@ -1,7 +1,9 @@
 import type { Category, Department, MovementLogFilters, MovementLogItem, PaginatedMovements, PaginatedProducts, Product, ProductFormValues, ProductHistory, ProductListFilters, ReversalResult, StockBalance, StockMovement } from "@/modules/catalog/types"
-import type { Profile } from "@/modules/access/types"
+import type { AlmoxRole, Profile } from "@/modules/access/types"
+import type { StockAdjustmentResult } from "@/modules/catalog/types"
+import type { AccessRequest, BalanceExportFilters, BalanceExportRow, DashboardSummary, ExportResult, InviteInput, ManagedUser, MovementExportFilters, MovementExportRow, StockAlert } from "@/modules/admin/types"
 
-type UserRecord = { id: string; email: string; password: string; profile: Profile }
+type UserRecord = { id: string; email: string; password: string; profile: Profile; created_at?: string; updated_at?: string; last_sign_in_at?: string | null; invited_at?: string | null }
 
 type Store = {
   users: UserRecord[]
@@ -9,12 +11,14 @@ type Store = {
   departments: Department[]
   products: Product[]
   movements: StockMovement[]
+  accessRequests?: AccessRequest[]
 }
 
-const KEY = "almox.offline.store.v1"
+const KEY = "almox.offline.store.v2"
 
 const nowIso = () => new Date().toISOString()
 const uid = (p: string) => `${p}-${Math.random().toString(36).slice(2, 10)}`
+const hoursAgo = (h: number) => new Date(Date.now() - h * 3600 * 1000).toISOString()
 
 function seed(): Store {
   const t = "2026-11-10T12:00:00.000Z"
@@ -44,7 +48,25 @@ function seed(): Store {
     { id: "mov-3", product_id: "prd-oculos", actor_id: adminUser.id, kind: "ENTRADA", delta: 10, balance_before: 0, balance_after: 10, product_version: 1, reason: "Reposição", origin: "Fornecedor XYZ", department_id: null, recipient_ref: null, document_ref: null, reversal_of: null, recorded_at: "2026-11-10T13:02:00.000Z", snapshots: { sku: "EPI-002", name: "Óculos de segurança", unit: "UN", actor_name: adminUser.profile.display_name } },
     { id: "mov-4", product_id: "prd-oculos", actor_id: operatorUser.id, kind: "SAIDA", delta: -10, balance_before: 10, balance_after: 0, product_version: 2, reason: "Distribuição", origin: null, department_id: "dep-prod", recipient_ref: "Equipe A", document_ref: null, reversal_of: null, recorded_at: "2026-11-10T13:05:00.000Z", snapshots: { sku: "EPI-002", name: "Óculos de segurança", unit: "UN", actor_name: operatorUser.profile.display_name, department_name: "Produção" } },
   ]
-  return { users, categories, departments, products, movements }
+  // Itens adicionais (horários relativos) para o painel RF14 ter alertas e atividade recente.
+  const extra: Array<{ id: string; sku: string; name: string; cat: Category; unit: Product["unit"]; min: number; loc: string | null; flow: Array<[number, number, string, string | null]> }> = [
+    { id: "prd-fita", sku: "MAN-021", name: "Fita isolante 19mm", cat: catFerr, unit: "UN", min: 8, loc: "Gaveta F3", flow: [[50, 20, "Compra mensal", null], [30, -14, "Reparo elétrico", "dep-manut"], [6, -3, "Manutenção preventiva", "dep-manut"]] },
+    { id: "prd-alcool", sku: "LIM-070", name: "Álcool 70% (litro)", cat: catEpi, unit: "L", min: 10, loc: "Prateleira B2", flow: [[70, 30, "Reposição", null], [20, -12.5, "Higienização de linhas", "dep-prod"]] },
+    { id: "prd-disco", sku: "FER-115", name: "Disco de corte 115mm", cat: catFerr, unit: "UN", min: 15, loc: "Armário F2", flow: [[90, 60, "Compra trimestral", null], [26, -12, "Serralheria", "dep-manut"], [3, -8, "Ajuste de estrutura", "dep-prod"]] },
+    { id: "prd-papel", sku: "ESC-200", name: "Papel A4 75g (caixa)", cat: catEsc, unit: "CX", min: 4, loc: "Sala 2 — estante", flow: [[100, 6, "Compra", null], [10, -3, "Uso administrativo", "dep-adm"]] },
+    { id: "prd-capacete", sku: "EPI-010", name: "Capacete de segurança", cat: catEpi, unit: "UN", min: 6, loc: "Prateleira A3", flow: [[120, 25, "Compra inicial", null], [2, -4, "Novos colaboradores", "dep-prod"]] },
+  ]
+  for (const e of extra) {
+    let bal = 0; let version = 0; let last = t
+    e.flow.forEach(([h, delta, reason, dep], i) => {
+      const before = bal; bal = Math.round((bal + delta) * 1000) / 1000; version += 1; last = hoursAgo(h)
+      const actor = delta > 0 ? adminUser : operatorUser
+      const depName = departments.find((d) => d.id === dep)?.name
+      movements.push({ id: `mov-${e.id}-${i}`, product_id: e.id, actor_id: actor.id, kind: delta > 0 ? "ENTRADA" : "SAIDA", delta, balance_before: before, balance_after: bal, product_version: version, reason, origin: delta > 0 ? "Fornecedor Central" : null, department_id: dep, recipient_ref: dep ? "Equipe do setor" : null, document_ref: delta > 0 ? `NF-${2000 + i}` : null, reversal_of: null, recorded_at: last, snapshots: { sku: e.sku, name: e.name, unit: e.unit, actor_name: actor.profile.display_name, ...(depName ? { department_name: depName } : {}) } })
+    })
+    products.push({ id: e.id, sku: e.sku, name: e.name, description: null, category_id: e.cat.id, unit: e.unit, minimum_stock: e.min, location: e.loc, active: true, first_movement_at: hoursAgo(e.flow[0]![0]), created_at: t, updated_at: last, categories: { id: e.cat.id, name: e.cat.name, active: e.cat.active }, stock_balances: { product_id: e.id, quantity: bal, version, updated_at: last } })
+  }
+  return { users, categories, departments, products, movements, accessRequests: [] }
 }
 
 let cache: Store | null = null
@@ -101,6 +123,7 @@ export const mockApi = {
     const u = store.users.find((x) => norm(x.email) === norm(email) && x.password === password)
     if (!u) return null
     if (!u.profile.active) return { ...u.profile, active: false }
+    u.last_sign_in_at = nowIso(); saveStore(store)
     setCurrentUser(u.id)
     return u.profile
   },
@@ -247,4 +270,149 @@ export const mockApi = {
     })
     return { items: enriched, total, page, pageSize, reversedBy }
   },
+
+  // RF10 — ajuste por contagem (simulação da verificação de versão)
+  adjustStockByCount(input: { productId: string; countedQuantity: string; expectedVersion: number; reason: string; operationKey: string }): StockAdjustmentResult {
+    const store = loadStore(); const actor = requireAdmin("STOCK_ADJUSTMENT_ADMIN_REQUIRED")
+    const p = store.products.find((x) => x.id === input.productId); if (!p) throw new Error("PRODUCT_NOT_FOUND"); if (!p.active) throw new Error("PRODUCT_INACTIVE")
+    const bal = getBalance(p)
+    if (bal.version !== input.expectedVersion) throw new Error("STOCK_VERSION_CHANGED")
+    const counted = Number(input.countedQuantity); const before = Number(bal.quantity); const delta = counted - before
+    if (!Number.isFinite(counted) || counted < 0) throw new Error("COUNTED_QUANTITY_INVALID")
+    if (delta === 0) throw new Error("COUNT_MATCHES_CURRENT_STOCK")
+    bal.quantity = counted; bal.version += 1; bal.updated_at = nowIso(); p.updated_at = bal.updated_at; p.first_movement_at = p.first_movement_at ?? bal.updated_at
+    const m: StockMovement = { id: uid("mov"), product_id: p.id, actor_id: actor.id, kind: "AJUSTE", delta, balance_before: before, balance_after: counted, product_version: bal.version, reason: input.reason.trim(), origin: null, department_id: null, recipient_ref: null, document_ref: null, reversal_of: null, recorded_at: bal.updated_at, snapshots: { sku: p.sku, name: p.name, unit: p.unit, ...actorSnapshot(actor) } }
+    store.movements.push(m); saveStore(store)
+    return { movement_id: m.id, product_id: p.id, delta: String(delta), balance: String(counted), version: bal.version, kind: "AJUSTE" }
+  },
+
+  // RF14 — painel
+  dashboardSummary(alertLimit = 20): DashboardSummary {
+    const store = loadStore()
+    const rows = store.products.map((p) => ({ p, qty: Number(getBalance(p).quantity), min: Number(p.minimum_stock), bal: getBalance(p) }))
+    const active = rows.filter((r) => r.p.active)
+    const alerts: StockAlert[] = active
+      .filter((r) => r.qty <= r.min)
+      .sort((a, b) => (a.qty === 0 ? 0 : 1) - (b.qty === 0 ? 0 : 1) || (a.min > 0 ? a.qty / a.min : 0) - (b.min > 0 ? b.qty / b.min : 0) || a.p.name.localeCompare(b.p.name, "pt-BR"))
+      .slice(0, alertLimit)
+      .map((r) => ({ id: r.p.id, sku: r.p.sku, name: r.p.name, unit: r.p.unit, location: r.p.location, category_name: r.p.categories?.name ?? null, quantity: r.qty, minimum_stock: r.min, updated_at: r.bal.updated_at }))
+    const since = Date.now() - 7 * 24 * 3600 * 1000
+    const recent = store.movements.filter((m) => new Date(m.recorded_at).getTime() >= since)
+    const last = store.movements.reduce<string | null>((acc, m) => (!acc || m.recorded_at > acc ? m.recorded_at : acc), null)
+    return {
+      generated_at: nowIso(),
+      counts: {
+        active_products: active.length,
+        inactive_products: rows.length - active.length,
+        zero_balance: active.filter((r) => r.qty === 0).length,
+        at_or_below_minimum: active.filter((r) => r.qty <= r.min).length,
+        below_minimum_with_stock: active.filter((r) => r.qty > 0 && r.qty <= r.min).length,
+      },
+      alerts,
+      activity: {
+        last_7_days: recent.length,
+        entries_7_days: recent.filter((m) => m.kind === "ENTRADA").length,
+        exits_7_days: recent.filter((m) => m.kind === "SAIDA").length,
+        corrections_7_days: recent.filter((m) => m.kind === "AJUSTE" || m.kind === "ESTORNO").length,
+        last_movement_at: last,
+      },
+    }
+  },
+
+  // RF15 — exportações
+  exportBalances(filters: BalanceExportFilters): ExportResult<BalanceExportRow> {
+    requireAdmin("EXPORT_ADMIN_REQUIRED")
+    const store = loadStore(); const situation = filters.situation ?? "all"
+    const rows: BalanceExportRow[] = store.products
+      .filter((p) => !filters.categoryId || p.category_id === filters.categoryId)
+      .map((p) => ({ p, b: getBalance(p) }))
+      .filter(({ p, b }) => {
+        const q = Number(b.quantity)
+        if (situation === "active") return p.active
+        if (situation === "inactive") return !p.active
+        if (situation === "zero_balance") return p.active && q === 0
+        if (situation === "at_or_below_minimum") return p.active && q <= Number(p.minimum_stock)
+        return true
+      })
+      .sort((a, b) => a.p.sku.localeCompare(b.p.sku))
+      .map(({ p, b }) => ({ sku: p.sku, name: p.name, category_name: store.categories.find((c) => c.id === p.category_id)?.name ?? null, unit: p.unit, quantity: b.quantity, minimum_stock: p.minimum_stock, location: p.location, active: p.active, at_or_below_minimum: p.active && Number(b.quantity) <= Number(p.minimum_stock), version: b.version, updated_at: b.updated_at }))
+    return { generated_at: nowIso(), filters: { category_id: filters.categoryId || null, situation }, row_count: rows.length, rows }
+  },
+  exportMovements(filters: MovementExportFilters & { from: string | null; toExclusive: string | null }): ExportResult<MovementExportRow> {
+    requireAdmin("EXPORT_ADMIN_REQUIRED")
+    const store = loadStore()
+    const rows: MovementExportRow[] = store.movements
+      .filter((m) => (!filters.from || m.recorded_at >= filters.from) && (!filters.toExclusive || m.recorded_at < filters.toExclusive))
+      .filter((m) => (!filters.productId || m.product_id === filters.productId) && (!filters.kind || m.kind === filters.kind))
+      .filter((m) => (!filters.actorId || m.actor_id === filters.actorId) && (!filters.departmentId || m.department_id === filters.departmentId))
+      .sort((a, b) => b.recorded_at.localeCompare(a.recorded_at) || b.id.localeCompare(a.id))
+      .map((m) => ({ id: m.id, recorded_at: m.recorded_at, kind: m.kind, sku: m.snapshots.sku ?? null, product_name: m.snapshots.name ?? null, unit: m.snapshots.unit ?? null, delta: m.delta, balance_before: m.balance_before, balance_after: m.balance_after, product_version: m.product_version, actor_name: m.snapshots.actor_name ?? null, origin: m.origin, department_name: m.snapshots.department_name ?? null, recipient_ref: m.recipient_ref, document_ref: m.document_ref, reason: m.reason, reversal_of: m.reversal_of, reversed_by: store.movements.find((r) => r.reversal_of === m.id)?.id ?? null }))
+    return { generated_at: nowIso(), filters: { from: filters.from, to_exclusive: filters.toExclusive, product_id: filters.productId || null, kind: filters.kind || null, actor_id: filters.actorId || null, department_id: filters.departmentId || null }, row_count: rows.length, rows }
+  },
+
+  // RF16 — usuários
+  listUsers(): ManagedUser[] {
+    requireAdmin("USER_ADMIN_REQUIRED")
+    return loadStore().users
+      .map((u) => ({ id: u.id, display_name: u.profile.display_name, email: u.email, role: u.profile.role, active: u.profile.active, created_at: u.created_at ?? "2026-11-10T12:00:00.000Z", updated_at: u.updated_at ?? "2026-11-10T12:00:00.000Z", last_sign_in_at: u.last_sign_in_at ?? null, invited_at: u.invited_at ?? null }))
+      .sort((a, b) => Number(b.active) - Number(a.active) || a.display_name.localeCompare(b.display_name, "pt-BR"))
+  },
+  setUserRole(userId: string, role: AlmoxRole) {
+    requireAdmin("USER_ADMIN_REQUIRED")
+    const store = loadStore(); const u = store.users.find((x) => x.id === userId); if (!u) throw new Error("USER_NOT_FOUND")
+    ensureAnotherAdmin(store, userId, role, u.profile.active)
+    const changed = u.profile.role !== role
+    if (changed) { u.profile.role = role; u.updated_at = nowIso(); saveStore(store) }
+    return { id: u.id, role: u.profile.role, active: u.profile.active, changed }
+  },
+  setUserActive(userId: string, active: boolean) {
+    requireAdmin("USER_ADMIN_REQUIRED")
+    const store = loadStore(); const u = store.users.find((x) => x.id === userId); if (!u) throw new Error("USER_NOT_FOUND")
+    ensureAnotherAdmin(store, userId, u.profile.role, active)
+    const changed = u.profile.active !== active
+    if (changed) { u.profile.active = active; u.updated_at = nowIso(); saveStore(store) }
+    return { id: u.id, role: u.profile.role, active: u.profile.active, changed }
+  },
+  listAccessRequests(): AccessRequest[] {
+    requireAdmin("USER_ADMIN_REQUIRED")
+    return [...(loadStore().accessRequests ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 20)
+  },
+  inviteUser(input: InviteInput): AccessRequest {
+    const actor = requireAdmin("USER_ADMIN_REQUIRED")
+    const store = loadStore(); store.accessRequests ??= []
+    const email = input.email.trim().toLowerCase(); const name = input.displayName.trim().replace(/\s+/g, " ")
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("INVITE_EMAIL_INVALID")
+    if (!name) throw new Error("INVITE_NAME_INVALID")
+    const key = `${actor.id}:${input.operationKey}`
+    const existing = store.accessRequests.find((r) => (r as AccessRequest & { _key?: string })._key === key)
+    if (existing) {
+      if (existing.target_email !== email || existing.display_name !== name || existing.role !== input.role) throw new Error("OPERATION_KEY_REUSED_WITH_DIFFERENT_CONTENT")
+      if (existing.status === "failed") throw new Error(existing.error_code ?? "INVITE_FAILED")
+      return existing
+    }
+    const t = nowIso()
+    const request: AccessRequest & { _key: string } = { _key: key, id: uid("req"), target_email: email, display_name: name, role: input.role, status: "completed", error_code: null, auth_user_id: null, created_at: t }
+    if (store.users.some((u) => norm(u.email) === email)) {
+      request.status = "failed"; request.error_code = "USER_ALREADY_EXISTS"
+      store.accessRequests.push(request); saveStore(store)
+      throw new Error("USER_ALREADY_EXISTS")
+    }
+    const id = crypto.randomUUID()
+    // Modo demonstração: a conta convidada usa a senha de teste e nasce INATIVA.
+    store.users.push({ id, email, password: "Test1234!", created_at: t, updated_at: t, invited_at: t, last_sign_in_at: null, profile: { id, display_name: name, role: input.role, active: false } })
+    request.auth_user_id = id
+    store.accessRequests.push(request); saveStore(store)
+    return request
+  },
+}
+
+function requireAdmin(code: string): UserRecord {
+  const actor = getCurrentUser()
+  if (!actor || !actor.profile.active || actor.profile.role !== "admin") throw new Error(code)
+  return actor
+}
+
+function ensureAnotherAdmin(store: Store, targetId: string, nextRole: AlmoxRole, nextActive: boolean) {
+  const remaining = store.users.filter((u) => u.id !== targetId && u.profile.role === "admin" && u.profile.active).length
+  if (remaining === 0 && !(nextRole === "admin" && nextActive)) throw new Error("LAST_ADMIN_REQUIRED")
 }

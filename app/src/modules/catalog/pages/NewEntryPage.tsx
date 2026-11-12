@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useRef, useState } from "react"
 import { useForm } from "react-hook-form"
-import { Link } from "react-router"
+import { Link, useSearchParams } from "react-router"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,7 +30,8 @@ export function NewEntryPage() {
   const operationKey = useRef(crypto.randomUUID())
   const [feedback, setFeedback] = useState<{ type: "success" | "danger"; text: string; productId?: string } | null>(null)
   const products = useQuery({ queryKey: ["products", "entry-options"], queryFn: () => listProducts({ situation: "active", pageSize: 100, sort: "name" }) })
-  const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { productId: "", quantity: "", origin: "", reason: "", documentRef: "" } })
+  const [searchParams] = useSearchParams()
+  const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { productId: searchParams.get("produto") ?? "", quantity: "", origin: "", reason: "", documentRef: "" } })
   const mutation = useMutation({
     mutationFn: (values: Values) => registerEntry({ ...values, quantity: values.quantity.replace(",", "."), operationKey: operationKey.current }),
     onSuccess: async (result) => {
