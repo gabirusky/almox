@@ -28,7 +28,6 @@ const toneClasses: Record<Tone, { bar: string; icon: string }> = {
 function KpiTile({ label, value, hint, icon: Icon, tone, to }: { label: string; value: number | string; hint: string; icon: LucideIcon; tone: Tone; to?: string }) {
   const body = (
     <div className="relative h-full overflow-hidden rounded-xl border border-line bg-surface p-4 shadow-sm sm:p-5 transition-shadow group-hover:shadow-md">
-      <span className={cn("absolute inset-y-0 left-0 w-1", toneClasses[tone].bar)} aria-hidden="true" />
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm font-medium text-muted">{label}</p>
         <span className={cn("grid size-8 shrink-0 place-items-center rounded-lg sm:size-9", toneClasses[tone].icon)} aria-hidden="true"><Icon className="size-4 sm:size-5" /></span>
@@ -84,7 +83,6 @@ export function DashboardPage() {
       <div className="relative overflow-hidden rounded-2xl bg-ink p-6 text-surface shadow-sm sm:p-8">
         <div className="pointer-events-none absolute -right-16 -top-24 size-72 rounded-full bg-signal/40 blur-3xl" aria-hidden="true" />
         <div className="pointer-events-none absolute -bottom-28 right-40 size-64 rounded-full bg-success/30 blur-3xl" aria-hidden="true" />
-        <div className="pointer-events-none absolute inset-0 opacity-[0.07] [background-image:linear-gradient(to_right,white_1px,transparent_1px),linear-gradient(to_bottom,white_1px,transparent_1px)] [background-size:28px_28px]" aria-hidden="true" />
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-2">
             <h1 id="dashboard-title" className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">Olá{firstName ? `, ${firstName}` : ""}.</h1>
@@ -117,7 +115,7 @@ export function DashboardPage() {
           </div>
 
           <div className="grid gap-6 xl:grid-cols-3">
-            <Card className="min-w-0 gap-4 xl:col-span-2">
+            <Card className="min-w-0 gap-4 self-start xl:col-span-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-heading text-base"><TriangleAlert className="size-4 text-warn" aria-hidden="true" />Alertas de estoque mínimo</CardTitle>
                 <CardDescription>Itens ativos com saldo menor ou igual ao mínimo, priorizando os zerados.</CardDescription>

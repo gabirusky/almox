@@ -78,7 +78,7 @@ export function OperationsLogPage() {
       />
 
       <form className="space-y-4 rounded-lg border border-line bg-surface p-4" onSubmit={(e) => { e.preventDefault(); applyFilters() }} aria-label="Filtros de operações">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-1.5">
             <Label htmlFor="f-from">De (data)</Label>
             <Input id="f-from" type="date" value={draft.dateFrom ?? ""} onChange={(e) => setDraft((d) => ({ ...d, dateFrom: e.target.value }))} />
@@ -87,7 +87,7 @@ export function OperationsLogPage() {
             <Label htmlFor="f-to">Até (data)</Label>
             <Input id="f-to" type="date" value={draft.dateTo ?? ""} onChange={(e) => setDraft((d) => ({ ...d, dateTo: e.target.value }))} />
           </div>
-          <div className="space-y-1.5 xl:col-span-2">
+          <div className="space-y-1.5">
             <Label htmlFor="f-product">Produto</Label>
             <Select id="f-product" value={draft.productId ?? ""} onChange={(e) => setDraft((d) => ({ ...d, productId: e.target.value }))}>
               <option value="">Todos os produtos</option>
@@ -107,7 +107,7 @@ export function OperationsLogPage() {
               {actorOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
             </Select>
           </div>
-          <div className="space-y-1.5 xl:col-span-2">
+          <div className="space-y-1.5">
             <Label htmlFor="f-dept">Setor / destino</Label>
             <Select id="f-dept" value={draft.departmentId ?? ""} onChange={(e) => setDraft((d) => ({ ...d, departmentId: e.target.value }))}>
               <option value="">Todos os setores</option>

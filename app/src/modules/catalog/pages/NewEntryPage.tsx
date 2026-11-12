@@ -46,11 +46,10 @@ export function NewEntryPage() {
   })
 
   return (
-    <section className="space-y-6">
+    <section className="mx-auto mt-16 max-w-xl space-y-4 sm:mt-32">
       <PageHeader
-        back={<Link to="/produtos" className="text-sm text-signal underline underline-offset-2">← Voltar para produtos</Link>}
         title="Registrar entrada"
-        description="Informe produto, quantidade, origem e motivo. A operação atualiza saldo e histórico de forma atômica e idempotente."
+        description=""
       />
       {feedback ? (
         <div className="space-y-2">
@@ -62,8 +61,8 @@ export function NewEntryPage() {
       {products.error ? <ErrorState message={getErrorMessage(products.error, "Não foi possível carregar os produtos.")} /> : null}
       {!products.isLoading && !products.error ? (
         <Card>
-          <CardContent className="pt-6">
-            <form className="space-y-4" onChange={() => { if (feedback?.type === "danger") setFeedback(null) }} onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
+          <CardContent className="p-4 sm:p-5">
+            <form className="space-y-3" onChange={() => { if (feedback?.type === "danger") setFeedback(null) }} onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
               <div className="space-y-1.5">
                 <Label htmlFor="entry-product">Produto</Label>
                 <Select id="entry-product" aria-invalid={Boolean(form.formState.errors.productId)} aria-describedby={form.formState.errors.productId ? "product-error" : undefined} disabled={mutation.isPending} {...form.register("productId")}>
@@ -72,7 +71,7 @@ export function NewEntryPage() {
                 </Select>
                 {form.formState.errors.productId ? <p id="product-error" className="text-sm text-danger" role="alert">{form.formState.errors.productId.message}</p> : null}
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="entry-quantity">Quantidade</Label>
                   <Input id="entry-quantity" inputMode="decimal" placeholder="Ex.: 10 ou 2,500" aria-invalid={Boolean(form.formState.errors.quantity)} aria-describedby={form.formState.errors.quantity ? "quantity-error" : undefined} disabled={mutation.isPending} {...form.register("quantity")} />
@@ -93,9 +92,9 @@ export function NewEntryPage() {
                 <Input id="entry-reason" placeholder="Motivo da entrada" aria-invalid={Boolean(form.formState.errors.reason)} aria-describedby={form.formState.errors.reason ? "reason-error" : undefined} disabled={mutation.isPending} {...form.register("reason")} />
                 {form.formState.errors.reason ? <p id="reason-error" className="text-sm text-danger" role="alert">{form.formState.errors.reason.message}</p> : null}
               </div>
-              <div className="flex items-center gap-3">
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-3 pt-1">
                 <Button type="submit" disabled={mutation.isPending || products.isLoading}>{mutation.isPending ? "Registrando..." : "Confirmar entrada"}</Button>
-                <p className="text-xs text-muted">Evite duplo clique: o envio é protegido por chave idempotente.</p>
+                <Button type="button" variant="outline" disabled={mutation.isPending} onClick={() => form.reset({ productId: "", quantity: "", origin: "", reason: "", documentRef: "" })}>Limpar formulário</Button>
               </div>
             </form>
           </CardContent>

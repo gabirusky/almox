@@ -93,11 +93,10 @@ export function NewExitPage() {
   }
 
   return (
-    <section className="space-y-6">
+    <section className="mx-auto mt-16 max-w-xl space-y-4 sm:mt-32">
       <PageHeader
-        back={<Link to="/produtos" className="text-sm text-signal underline underline-offset-2">← Voltar para produtos</Link>}
         title="Registrar saída"
-        description="Selecione produto e setor ativo, informe recebedor e motivo. O saldo consultado é informativo; o banco confirma novamente ao registrar."
+        description=""
       />
       {feedback ? (
         <div className="space-y-2">
@@ -107,8 +106,8 @@ export function NewExitPage() {
       ) : null}
 
       <Card>
-        <CardContent className="pt-6">
-          <form className="space-y-4" onChange={() => { operationKey.current = crypto.randomUUID(); if (feedback?.type === "danger") setFeedback(null) }} onSubmit={form.handleSubmit(requestReview)}>
+        <CardContent className="p-4 sm:p-5">
+          <form className="space-y-3" onChange={() => { operationKey.current = crypto.randomUUID(); if (feedback?.type === "danger") setFeedback(null) }} onSubmit={form.handleSubmit(requestReview)}>
             <div className="space-y-1.5">
               <Label htmlFor="exit-search">Buscar produto por nome ou SKU</Label>
               <Input id="exit-search" value={search} onChange={(event) => { setSearch(event.target.value); form.setValue("productId", "") }} placeholder="Digite para localizar o produto" disabled={mutation.isPending} />
@@ -130,7 +129,7 @@ export function NewExitPage() {
               {product.data ? <Alert>Saldo consultado: <strong className="font-mono">{formatQuantity(balanceQuantity(product.data), product.data.unit)}</strong>. O banco verificará o saldo novamente ao confirmar.</Alert> : null}
               {product.data && !product.data.active ? <Alert variant="danger">Produto inativo não aceita saídas.</Alert> : null}
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="exit-quantity">Quantidade</Label>
                 <Input id="exit-quantity" inputMode="decimal" placeholder="Ex.: 4 ou 2,500" aria-invalid={Boolean(form.formState.errors.quantity)} aria-describedby={form.formState.errors.quantity ? "exit-quantity-error" : undefined} disabled={mutation.isPending} {...form.register("quantity")} />
@@ -156,7 +155,10 @@ export function NewExitPage() {
               <Input id="exit-reason" maxLength={500} aria-invalid={Boolean(form.formState.errors.reason)} aria-describedby={form.formState.errors.reason ? "exit-reason-error" : undefined} disabled={mutation.isPending} {...form.register("reason")} />
               {form.formState.errors.reason ? <p id="exit-reason-error" className="text-sm text-danger" role="alert">{form.formState.errors.reason.message}</p> : null}
             </div>
-            <Button type="submit" disabled={mutation.isPending || product.isLoading || !product.data || departments.isLoading}>{mutation.isPending ? "Registrando..." : "Revisar e confirmar saída"}</Button>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3 pt-1">
+              <Button type="submit" disabled={mutation.isPending || product.isLoading || !product.data || departments.isLoading}>{mutation.isPending ? "Registrando..." : "Revisar e confirmar saída"}</Button>
+              <Button type="button" variant="outline" disabled={mutation.isPending} onClick={() => form.reset({ productId: "", quantity: "", origin: "", reason: "", documentRef: "" })}>Limpar formulário</Button>
+            </div>
           </form>
         </CardContent>
       </Card>
