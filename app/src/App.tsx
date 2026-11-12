@@ -18,6 +18,7 @@ import { AppShell } from "@/modules/shared/components/AppShell"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import logo from "@/assets/logo_almox.png"
+import { AuditPage } from "@/modules/audit/AuditPage"
 
 const queryClient = new QueryClient()
 
@@ -77,6 +78,7 @@ export default function App() {
               <Route path="/categorias" element={<RequireAuth><CategoriesPage /></RequireAuth>} />
               <Route path="/setores" element={<RequireAuth><DepartmentsPage /></RequireAuth>} />
               <Route path="/app" element={<RequireAuth><HomePage /></RequireAuth>} />
+              <Route path="/auditoria" element={<RequireAuth><RequireRole role="admin"><AuditPage /></RequireRole></RequireAuth>} />
             </Routes>
           </AppShell>
         </BrowserRouter>
