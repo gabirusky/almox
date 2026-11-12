@@ -116,6 +116,8 @@ VITE_SUPABASE_ANON_KEY=
 # VITE_OFFLINE_MODE=true
 ```
 
+> `VITE_BASE_PATH` não é necessário no dia a dia: localmente o site roda em `/`. Apenas o build de deploy no GitHub Pages usa `/almox/`, definido em `.github/workflows/pages.yml`.
+
 > Se `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` não estiverem configuradas, o frontend entra automaticamente em **modo offline/mock** (demo local). Para usar Supabase real/local, preencha as variáveis com valores válidos e reinicie o Vite.
 
 ### Frontend (`app/`)
@@ -138,9 +140,7 @@ npx supabase db reset   # aplica migrations + supabase/seed.sql
 ```
 
 - `supabase/config.toml` desabilita cadastro público (`enable_signup=false`).
-- `supabase/seed.sql` inclui **mock users/profiles persistentes (local/dev)**, recriados a cada `db reset`:
-  - `admin@almox.test` / `Test1234!` (`admin`, ativo)
-  - `operador@almox.test` / `Test1234!` (`employee`, ativo)
+- `supabase/seed.sql` inclui **usuários/perfis de teste persistentes (local/dev)**, recriados a cada `db reset`: um `admin` ativo e um `employee` ativo. As credenciais não ficam no repositório.
   - também semeia categorias/setores de referência
 - Metadados locais do CLI são ignorados: `supabase/.temp/` (commit `26d6cf3`).
 - Validação SQL de referência (RNF01/RF01–RF04): `supabase/tests/rf01_rf04_permission_checks.sql`.
@@ -148,10 +148,23 @@ npx supabase db reset   # aplica migrations + supabase/seed.sql
 ### Modo offline/mock (frontend, sem API)
 - **Objetivo:** permitir navegação/demo local quando o Supabase não estiver disponível.
 - **Ativação:** automática quando `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` estão ausentes; também pode ser forçado com `VITE_OFFLINE_MODE=true`.
-- **Credenciais de demo (mock local):** `admin@almox.test` / `Test1234!` e `operador@almox.test` / `Test1234!`.
-- **Dados:** catálogo, saldos e movimentações fictícias pré-populadas para exercitar RF01–RF16 na UI (consulta, manutenção admin, entrada/saída, estorno, contagem física, log global, painel com alertas, exportação CSV e convites/perfis de usuários). Convidados no mock usam a senha de demo `Test1234!` e nascem inativos.
+- **Credenciais de demo:** não ficam no repositório; são entregues à parte. Usuários de teste já vêm semeados no mock local.
+- **Dados:** catálogo, saldos e movimentações fictícias pré-populadas para exercitar RF01–RF16 na UI (consulta, manutenção admin, entrada/saída, estorno, contagem física, log global, painel com alertas, exportação CSV e convites/perfis de usuários). Convidados no mock nascem inativos e usam a senha padrão de demonstração.
 - **Persistência:** estado do mock salvo no navegador (`localStorage`, chaves `almox.offline.*`); limpar essas chaves restaura o seed.
 - **Limitação:** é uma simulação de frontend para demonstração/usabilidade — **não substitui** RLS, RPCs, constraints, transações, concorrência e demais garantias do PostgreSQL/Supabase. Para validação integrada/autoridade de regras, use o ambiente Supabase.
+
+### Demo online (GitHub Pages)
+Deploy automático a cada push em `main` via `.github/workflows/pages.yml` (build de `app/` em modo offline/mock, artefato publicado no GitHub Pages).
+
+- **URL:** https://gabirusky.github.io/almox/
+- **Modo:** offline/mock (`VITE_OFFLINE_MODE=true` no build) — sem Supabase e sem chaves no repositório.
+- **Credenciais:** fornecidas fora do repositório (usuários de teste já semeados).
+- **Dados:** ficam no navegador (`localStorage`, chaves `almox.offline.*`); limpar o storage restaura o seed. Nada é enviado a servidor.
+- **Deep links:** SPA com fallback `404.html` (cópia de `dist/index.html` gerada no build), então `/almox/produtos` e similares funcionam em acesso direto/refresh.
+
+Pull requests rodam apenas verificação (`lint`, `typecheck`, `test`, `build`); deploy só em `main`. Pré-requisito no GitHub: **Settings → Pages → Source = GitHub Actions**.
+
+Para ativar o Supabase depois: adicionar `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` como *repository variables*, remover `VITE_OFFLINE_MODE` do build e configurar Supabase Auth (Site URL `https://gabirusky.github.io/almox/`, redirect `/almox/definir-senha`). Detalhes em `docs/deploy-pages.md`.
 
 ## Migrations Supabase (ordem no repositório)
 - `20261109201907_t020_t029_rf01_rf04_schema.sql` — schema/base catálogo e perfis
