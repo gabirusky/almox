@@ -172,7 +172,7 @@ export function NewExitPage() {
       >
         {review && product.data && selectedDepartment ? (
           <div className="rounded-md border border-line bg-bg p-3 text-sm">
-            <dl className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-1.5">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
               <dt className="text-muted">Produto</dt><dd className="font-medium">{product.data.sku} — {product.data.name}</dd>
               <dt className="text-muted">Quantidade</dt><dd className="font-mono">{review.quantity} {product.data.unit}</dd>
               <dt className="text-muted">Saldo consultado</dt><dd className="font-mono">{formatQuantity(balanceQuantity(product.data), product.data.unit)}</dd>

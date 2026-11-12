@@ -120,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isOfflineMode()) return null;
     if (!hasSupabaseConfig()) return "Configuração do Supabase ausente.";
     const { error } = await supabase.auth.resetPasswordForEmail(_email, {
-      redirectTo: `${window.location.origin}/recuperar-senha`,
+      redirectTo: `${window.location.origin}/definir-senha`,
     });
     if (error) return "Não foi possível solicitar a recuperação. Verifique o e-mail informado.";
     return null;

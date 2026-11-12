@@ -42,3 +42,7 @@ enable_confirmations = false
 
 [storage]
 enabled = false
+
+[functions.admin-invite]
+enabled = true
+verify_jwt = true
