@@ -47,7 +47,7 @@ Consulta confiável de saldo, movimentações rastreáveis e correções auditá
 - **Regras críticas:** RLS, constraints, funções/triggers/RPC no PostgreSQL (fonte de verdade para autorização e invariantes). Frontend usa apenas chave publicável/anon + JWT; **nunca** `service_role` no cliente.
 - **Log de operações (global):** consulta paginada de `stock_movements` (usuários ativos, via RLS) com filtros (período, produto, tipo, responsável, setor), ordenação estável (`recorded_at desc, id desc`), exibição por snapshots/joins permitidos e resolução de vínculos de estorno (`reversal_of`/`reversedBy`) inclusive entre páginas/produtos. Estorno administrativo a partir do log reutiliza as mesmas garantias de RF09 (RPC, idempotência, elegibilidade e erros do banco).
 - **UI (Figma + shadcn):** protótipos no Figma, quando existirem, são usados apenas como inspiração de intenção visual e layout. A implementação deve ser reconstruída com componentes shadcn/ui padrão e reutilizáveis, priorizando consistência, acessibilidade e manutenção (servidor MCP do Figma conectado para consulta quando necessário).
-- **Identidade visual:** logo ALMOX aplicada no frontend (shell, páginas de acesso/estado e home), com assets em `app/assets/`, `app/src/assets/` e `app/public/`.
+- **Identidade visual:** logo ALMOX aplicada no frontend (shell, páginas de acesso/estado e home), com assets em `app/assets/`, `app/src/assets/` e `app/public/`. Arte horizontal (900×528, proporção 1,70:1, fundo transparente, navy `#002030` + verde `#00A060`); `app/assets/logo-nobg.png` guarda a arte-mestra e `app/public/logo_almox.png` é o favicon 256×256.
 
 ## Stack (atual, `app/package.json`)
 | Componente | Versão |
@@ -87,7 +87,7 @@ docs/                     # handoffs e roteiros de demo
 ```
 
 ## Rotas principais (`app/src/App.tsx`)
-- `/` — landing (anônimo) ou **painel RF14** (autenticado)
+- `/` — landing (anônimo, com transição animada para `/login`) ou **painel RF14** (autenticado)
 - `/login`, `/recuperar-senha`, `/acesso-inativo`, `/configuracao` — acesso/estado
 - `/definir-senha` — destino dos links de convite (RF16) e recuperação (RF01): define a nova senha
 - `/produtos`, `/produtos/:id` — consulta, cadastro/edição/inativação (admin), saldo, histórico e estorno administrativo (RF09)
@@ -183,6 +183,7 @@ Para ativar o Supabase depois: adicionar `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON
 
 ## Estado e notas
 - **UI:** navegação lateral agrupada (Visão geral, Estoque, Cadastros, Administração) com menu em gaveta no mobile, painel com faixa de destaque, landing e login em duas colunas; todas as telas usam os tokens Ledger Bench e componentes shadcn/ui existentes. Frontend modernizado com design system "Ledger Bench" (tokens/tema, tipografia, shell compartilhado, primitivas e componentes reutilizáveis shadcn/ui), logo ALMOX e melhorias de acessibilidade/responsividade nas rotas existentes.
+- **Landing ⇄ login (experiência única de acesso):** `/` e `/login` são dois estados visuais do **mesmo** componente (`modules/access/components/AuthExperience.tsx`), montado por uma rota de layout (`AuthLayout`) para que o logo seja o **mesmo elemento DOM** durante a transição. Coreografia em CSS puro (`modules/access/auth-experience.css`), sem biblioteca de animação e sem dependência nova: tracks do grid interpolam (`100% 0%` → `33.3333% 66.6667%`), o painel de marca vira vidro fosco, o formulário entra por baixo com revelação em cascata e a volta é mais curta e sem stagger. Autenticação, guards, rotas e copy intactas; painéis colapsados ficam `inert` + `aria-hidden`; `prefers-reduced-motion` mantém apenas um cross-fade de 120 ms. Detalhes em `docs/landing-login-animation.md`.
 - **Log global de operações (`/movimentacoes`):** tela de consulta de movimentações visíveis ao usuário ativo, com filtros combinados (período, produto, tipo, responsável, setor), paginação, ordenação por data/hora do servidor + identificador, rastreabilidade (autor, data, tipo, delta, saldo antes/depois, versão, origem/motivo, setor/recebedor quando aplicável) e vínculos de estorno resolvidos mesmo entre páginas/produtos. Administradores elegíveis podem estornar a partir do log com as mesmas regras de RF09; entradas/saídas/estornos invalidam e sincronizam catálogo, histórico do produto e log.
 - **RF09:** no histórico e no log global, administradores podem justificar e confirmar o estorno integral quando elegível. A RPC `almox_reverse_movement` preserva o original, calcula o delta inverso, recusa saldo negativo/produto inativo/estorno duplicado/estorno de estorno e confirma saldo, auditoria e comando conjuntamente.
 - **RF10:** a rota administrativa `/movimentacoes/ajuste` registra a contagem física e o motivo. `almox_adjust_stock_by_count` verifica a versão lida sob bloqueios na ordem comando → produto → saldo; se houver alteração concorrente, responde `STOCK_VERSION_CHANGED` e exige nova conferência. Saldo, movimento, auditoria e resultado idempotente são atômicos.
@@ -201,6 +202,7 @@ Para ativar o Supabase depois: adicionar `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON
 - Checks SQL RF09: `supabase/tests/rf09_reversal_checks.sql`; contrato, RNFs e roteiro: `docs/demo-rf09.md`
 - RF10/RF11: cenários de validação após `supabase db reset` em `docs/demo-rf10-rf11.md` (acesso, concorrência, idempotência, auditoria, filtros, paginação e vínculos do histórico).
 - RF14–RF16: checks SQL `supabase/tests/rf14_rf16_checks.sql`; roteiro e configuração da Edge Function em `docs/demo-rf14-rf16.md`.
+- Landing ⇄ login (transição animada): referência técnica em `docs/landing-login-animation.md`, plano original em `docs/landing-login-animation-plan.md` e roteiro de verificação em `docs/demo-landing-login.md`.
 
 ## Segurança e dados
 - Sem cadastro público; perfis controlados administrativamente.

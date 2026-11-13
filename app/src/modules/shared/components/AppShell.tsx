@@ -81,10 +81,8 @@ function SideNavItem({ item }: { item: NavEntry }) {
 function Brand() {
   return (
     <NavLink to="/" className="flex items-center gap-2.5 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2">
-      <img src={logo} alt="" className="h-9 w-auto" />
-      <span className="leading-tight">
-        <span className="block font-heading text-lg font-semibold tracking-tight text-ink">ALMOX</span>
-      </span>
+      {/* a arte já carrega o wordmark "Almox" */}
+      <img src={logo} alt="ALMOX" className="h-10 w-auto" />
     </NavLink>
   )
 }

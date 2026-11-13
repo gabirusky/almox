@@ -1,0 +1,385 @@
+/* ALMOX — transição landing ⇄ login
+ *
+ * O container `.authx` carrega `data-view="landing" | "login"`. Cada estado
+ * define suas próprias durações/delays (variáveis abaixo), então ida e volta
+ * têm coreografias diferentes sem nenhum encadeamento de timeouts em JS.
+ *
+ * O logo é UM único elemento DOM dentro de `.authx__chip`, que é item da
+ * coluna 1 do grid do card. Como as tracks do grid interpolam
+ * (`100% 0%` → `33.3333% 66.6667%`), o chip viaja do centro do card para o
+ * centro do painel de marca sem medição, sem FLIP e sem duplicar a imagem.
+ */
+
+.authx {
+  --authx-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --authx-dur-card: 520ms;
+  --authx-dur-cols: 500ms;
+  --authx-dur-chip: 480ms;
+  --authx-dur-bg: 420ms;
+  --authx-dur-actions: 240ms;
+  --authx-dur-panel: 520ms;
+  --authx-dur-step: 300ms;
+  --authx-dur-step-out: 180ms;
+
+  /* respiro vertical do landing (o login fica colado no topo do conteúdo) */
+  padding-block: 3rem;
+  transition: padding-block var(--authx-dur-card) var(--authx-ease);
+  /* o halo decorativo passa da borda do card; clipa sem gerar scroll lateral */
+  overflow-x: clip;
+}
+
+/* direção inversa (login → landing): encolhe mais rápido, sem stagger */
+.authx[data-view="landing"] {
+  --authx-dur-card: 430ms;
+  --authx-dur-cols: 420ms;
+  --authx-dur-chip: 420ms;
+  --authx-dur-bg: 380ms;
+  --authx-dur-actions: 220ms;
+  --authx-dur-panel: 420ms;
+}
+
+.authx[data-view="login"] {
+  padding-block: 0;
+}
+
+@media (min-width: 1024px) {
+  .authx {
+    padding-block: 4rem;
+  }
+}
+
+/* ------------------------------------------------------------- hero ------ */
+/* wrapper que abraça o card: carrega a largura animada (e o halo decorativo) */
+
+.authx__hero {
+  position: relative;
+  width: 100%;
+  /* 28rem: o card cresce para que o conteúdo (logo 23rem) ganhe respiro
+     interno sem encolher a marca — a faixa entre a borda e o conteúdo
+     passa de 24 px (16 de padding + 8 de margem) para 40 px. */
+  max-width: 28rem;
+  margin-inline: auto;
+  transition: max-width var(--authx-dur-card) var(--authx-ease);
+}
+
+.authx[data-view="login"] .authx__hero {
+  max-width: 72rem;
+}
+
+/* halo decorativo atrás do card (só no landing) */
+.authx__glow {
+  transition: opacity var(--authx-dur-card) var(--authx-ease);
+}
+
+.authx[data-view="login"] .authx__glow {
+  opacity: 0;
+}
+
+/* ---------------------------------------------------------------- card --- */
+
+.authx__card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 100% 0%;
+  width: 100%;
+  margin-inline: auto;
+  padding: 1.5rem;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  transition:
+    grid-template-columns var(--authx-dur-cols) var(--authx-ease),
+    min-height var(--authx-dur-card) var(--authx-ease),
+    padding var(--authx-dur-card) var(--authx-ease);
+}
+
+.authx[data-view="landing"] .authx__card {
+  grid-template-columns: 100% 0%;
+  padding: 1.5rem;
+}
+
+.authx[data-view="login"] .authx__card {
+  grid-template-columns: 33.3333% 66.6667%;
+  padding: 0;
+}
+
+@media (min-width: 640px) {
+  .authx__card {
+    min-height: 0;
+  }
+}
+
+/* --------------------------------------------------------- brand panel --- */
+
+.authx__brand {
+  position: relative;
+  z-index: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  transition:
+    gap var(--authx-dur-actions) var(--authx-ease),
+    padding var(--authx-dur-bg) var(--authx-ease);
+}
+
+.authx[data-view="login"] .authx__brand {
+  gap: 0;
+  padding: 1.5rem;
+}
+
+/* fundo do painel de marca: vidro fosco neutro (sem manchas de cor),
+   cresce de 0 até a largura da coluna */
+.authx__brandBg {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 0;
+  overflow: hidden;
+  background: rgb(238 242 241 / 0.55);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.75);
+  backdrop-filter: blur(26px) saturate(140%);
+  -webkit-backdrop-filter: blur(26px) saturate(140%);
+  opacity: 0;
+  transition:
+    width var(--authx-dur-bg) var(--authx-ease),
+    opacity var(--authx-dur-bg) var(--authx-ease);
+}
+
+.authx[data-view="login"] .authx__brandBg {
+  width: 100%;
+  opacity: 1;
+  border-right: 1px solid rgb(255 255 255 / 0.85);
+}
+
+.authx[data-view="login"] .authx__brandBg {
+  width: 100%;
+}
+
+/* ------------------------------------------------------------- chip ------ */
+/* único elemento de logo da tela: sem placa, direto sobre o card (landing)
+   ou sobre o gradiente do painel de marca (login). */
+
+.authx__chip {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16rem; /* 256px — arte 1.70:1 */
+  padding: 0;
+  transition: width var(--authx-dur-chip) var(--authx-ease);
+}
+
+.authx__chip img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@media (min-width: 640px) {
+  /* no desktop o logo ocupa exatamente a largura da linha de botões:
+     as bordas externas dos botões alinham com as bordas do wordmark.
+     A margem interna de 0.5rem afasta o bloco da borda do card. */
+  .authx[data-view="landing"] .authx__chip {
+    width: 20rem; /* 320px — o wordmark */
+    margin-inline: 0.5rem;
+  }
+
+  .authx[data-view="landing"] .authx__actions {
+    width: 20rem;
+    margin-inline: 0.5rem;
+  }
+
+  /* o par de botões preenche a linha inteira: separação mínima de 0.75rem
+     e bordas externas alinhadas ao wordmark */
+  .authx[data-view="landing"] .authx__actions > * {
+    flex: 1 1 auto;
+  }
+}
+
+.authx[data-view="login"] .authx__chip {
+  width: 8.4375rem; /* 135px */
+}
+
+@media (min-width: 1024px) {
+  .authx[data-view="login"] .authx__chip {
+    width: 13.5rem; /* 216px */
+  }
+}
+
+/* ---------------------------------------------------------- actions ------ */
+/* botões do landing: colapsam (max-height + gap) e somem no login */
+
+.authx__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem; /* separação mínima entre os botões (como no landing original) */
+  max-height: 8rem;
+  overflow: hidden;
+  opacity: 1;
+  transition:
+    max-height var(--authx-dur-actions) var(--authx-ease),
+    opacity var(--authx-dur-actions) var(--authx-ease);
+}
+
+.authx[data-view="login"] .authx__actions {
+  max-height: 0;
+  opacity: 0;
+}
+
+/* ------------------------------------------------------- login panel ----- */
+/* a coluna do form cresce (max-height) e revela o conteúdo por baixo do
+   painel de marca; a altura do card acompanha continuamente. */
+
+.authx__form {
+  position: relative;
+  min-width: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--authx-dur-panel) var(--authx-ease);
+}
+
+.authx[data-view="login"] .authx__form {
+  max-height: 34rem;
+}
+
+.authx__formInner {
+  padding: 1.5rem;
+  transition:
+    transform var(--authx-dur-panel) var(--authx-ease),
+    opacity var(--authx-dur-panel) var(--authx-ease);
+}
+
+@media (min-width: 640px) {
+  .authx__formInner {
+    padding: 2.5rem;
+  }
+}
+
+/* --------------------------------------------------------- responsivo ---- */
+
+@media (max-width: 1023px) {
+  /* layout vertical: a marca vira banner compacto acima do formulário */
+  .authx__card,
+  .authx[data-view="landing"] .authx__card,
+  .authx[data-view="login"] .authx__card {
+    grid-template-columns: 100%;
+  }
+
+  .authx__form {
+    max-height: 0;
+  }
+
+  .authx[data-view="login"] .authx__form {
+    max-height: 46rem;
+  }
+
+  .authx[data-view="landing"] .authx__formInner {
+    transform: translateY(-0.75rem);
+    opacity: 0;
+  }
+
+  .authx[data-view="login"] .authx__formInner {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* split horizontal: a coluna do form cresce e o conteúdo entra por baixo
+     do painel de marca (translateX) */
+  .authx[data-view="login"] .authx__form {
+    max-height: 34rem;
+    /* largura mínima estável: o conteúdo não quebra linha a cada quadro */
+    min-width: 28rem;
+  }
+
+  .authx[data-view="landing"] .authx__formInner {
+    transform: translateX(-100%);
+  }
+
+  .authx[data-view="login"] .authx__formInner {
+    transform: translateX(0);
+  }
+}
+
+/* --------------------------------------------------------- stagger ------- */
+/* revelação do conteúdo do formulário, uma etapa por vez */
+
+.authx__step {
+  opacity: 0;
+  transform: translateY(0.5rem);
+  transition:
+    opacity var(--authx-dur-step-out) var(--authx-ease),
+    transform var(--authx-dur-step-out) var(--authx-ease);
+  transition-delay: 0ms;
+}
+
+.authx[data-view="login"] .authx__step {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--authx-dur-step) var(--authx-ease),
+    transform var(--authx-dur-step) var(--authx-ease);
+}
+
+.authx[data-view="login"] .authx__step[data-step="1"] { transition-delay: 280ms; }
+.authx[data-view="login"] .authx__step[data-step="2"] { transition-delay: 330ms; }
+.authx[data-view="login"] .authx__step[data-step="3"] { transition-delay: 380ms; }
+.authx[data-view="login"] .authx__step[data-step="4"] { transition-delay: 430ms; }
+.authx[data-view="login"] .authx__step[data-step="5"] { transition-delay: 480ms; }
+.authx[data-view="login"] .authx__step[data-step="6"] { transition-delay: 530ms; }
+
+/* ------------------------------------------------------ recursos --------- */
+/* seção exclusiva do landing: colapsa ao sair (mantida montada para animar) */
+
+.authx__resources {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    max-height var(--authx-dur-card) var(--authx-ease),
+    opacity var(--authx-dur-card) var(--authx-ease),
+    margin-top var(--authx-dur-card) var(--authx-ease);
+}
+
+.authx[data-view="landing"] .authx__resources {
+  margin-top: 4rem;
+}
+
+.authx[data-view="landing"] .authx__resources[data-open="true"] {
+  max-height: 40rem;
+  opacity: 1;
+}
+
+@media (min-width: 1024px) {
+  .authx[data-view="landing"] .authx__resources {
+    margin-top: 5rem;
+  }
+}
+
+/* ------------------------------------------------- reduced motion -------- */
+/* sem movimento espacial: mantém apenas um cross-fade curto do conteúdo.
+   A regra global de index.css zera todas as transições; a especificidade
+   maior aqui devolve um cross-fade discreto para o formulário. */
+
+@media (prefers-reduced-motion: reduce) {
+  .authx .authx__step {
+    transition: opacity 120ms linear !important;
+    transition-delay: 0ms !important;
+  }
+
+  .authx .authx__formInner {
+    transition: opacity 120ms linear !important;
+    transition-delay: 0ms !important;
+  }
+}
