@@ -99,7 +99,7 @@ export function AuthExperience({ view }: { view: AuthView }) {
 
                 {/* único logo da tela: viaja do centro do card para o painel de marca */}
                 <div className="authx__chip">
-                  <img src={logo} alt="ALMOX — Controle, organização, resultados" />
+                  <img src={logo} alt="ALMOX" />
                 </div>
 
                 <div className="authx__actions" aria-hidden={view === "login"} inert={view === "login"}>
