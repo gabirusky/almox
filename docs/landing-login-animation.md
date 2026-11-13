@@ -170,6 +170,7 @@ O chip do logo é item da **coluna 1** do grid do card. A coluna encolhe de `100
 7. **Mobile (<1024 px).** Grid de uma coluna; a marca vira **banner compacto** (vidro fosco + logo) acima do formulário; a revelação é **vertical** (`max-height: 0 → 46rem`); o chip encolhe no lugar (topo preservado), sem salto vertical.
 8. **Seção "Recursos".** Vive fora do card, em wrapper `max-w-3xl` (mantém a largura atual) e permanece montada para poder colapsar na saída.
 9. **Scroll.** Entrando no login: `window.scrollTo(0)`. Voltando: também `window.scrollTo(0)`, com foco no botão "Entrar no sistema".
+10. **Rolagem dos recursos.** "Conhecer recursos" rola a página até os cards **depois** da expansão do painel (`transitionend` de `max-height`, com reserva de 700 ms). Antes disso a página ainda não tem altura rolável e o navegador limita o `scrollTop` a 0 — os cards abrem abaixo da dobra sem a rolagem. "Ocultar recursos" volta ao topo da landing (`#hero`) de imediato, porque nesse momento a página ainda está alta.
 10. **Overflow horizontal.** O halo decorativo passa da borda do card; `overflow-x: clip` no container impede scroll lateral (8 px no mobile) sem afetar o header sticky.
 
 ---

@@ -29,12 +29,39 @@ export function AuthExperience({ view }: { view: AuthView }) {
   const [mostrarRecursos, setMostrarRecursos] = useState(false)
   const raizRef = useRef<HTMLDivElement>(null)
   const entrarRef = useRef<HTMLAnchorElement>(null)
+  const recursosRef = useRef<HTMLDivElement>(null)
   const viewAnterior = useRef<AuthView>(view)
 
   // Ao revelar, rola até os recursos; ao ocultar, volta para o topo da landing.
+  // A abertura espera a expansão do painel: antes disso a página ainda não
+  // tem altura para rolar e o navegador limita o scroll ao topo (os cards
+  // abrem abaixo da dobra, sem a rolagem acompanhando).
   useEffect(() => {
-    const alvo = mostrarRecursos ? "recursos" : "hero"
-    document.getElementById(alvo)?.scrollIntoView({ behavior: "smooth", block: "start" })
+    if (mostrarRecursos) {
+      const painel = recursosRef.current
+      if (!painel) return
+
+      let rolou = false
+      const rolar = () => {
+        if (rolou) return
+        rolou = true
+        painel.scrollIntoView({ behavior: "smooth", block: "start" })
+      }
+      const aoExpandir = (evento: TransitionEvent) => {
+        if (evento.target === painel && evento.propertyName === "max-height") rolar()
+      }
+
+      painel.addEventListener("transitionend", aoExpandir)
+      const reserva = window.setTimeout(rolar, 700) // reserva: se o transitionend não vier
+      return () => {
+        painel.removeEventListener("transitionend", aoExpandir)
+        window.clearTimeout(reserva)
+      }
+    }
+
+    // Ocultar: a página ainda está alta, então a rolagem até o topo funciona
+    const alvo = document.getElementById("hero")
+    alvo?.scrollIntoView({ behavior: "smooth", block: "start" })
   }, [mostrarRecursos])
 
   // Foco e rolagem acompanham a troca de estado (ida: campo de e-mail; volta: botão).
@@ -95,7 +122,7 @@ export function AuthExperience({ view }: { view: AuthView }) {
         </section>
       </div>
 
-      <div id="recursos" className="authx__resources" data-open={mostrarRecursos ? "true" : "false"}>
+      <div id="recursos" ref={recursosRef} className="authx__resources" data-open={mostrarRecursos ? "true" : "false"}>
         <section aria-labelledby="recursos-titulo" className="mx-auto max-w-3xl space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 id="recursos-titulo" className="font-heading text-xl font-semibold tracking-tight">Recursos do MVP</h2>

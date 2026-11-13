@@ -56,7 +56,7 @@ Nenhuma credencial é necessária para os cenários 1–8 e 10–12; o cenário 
 
 ## 8. Recursos do MVP
 
-- Na landing, clicar em "Conhecer recursos" → a seção de recursos expande e a rolagem suave chega até ela.
+- Na landing, clicar em "Conhecer recursos" → a seção de recursos expande e a rolagem suave chega até ela (a rolagem só acontece depois que o painel termina de expandir: a página precisa ganhar altura antes, senão o navegador limita o scroll ao topo).
 - Clicar em "Ocultar recursos" → a seção colapsa e a rolagem volta ao topo da landing.
 - Na transição para o login, a seção de recursos **colapsa** sem salto.
 
