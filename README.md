@@ -1,4 +1,4 @@
-# ALMOX — Controle de Estoque de Almoxarifado
+# ALMOX: Controle de Estoque de Almoxarifado
 
 Sistema web para controle interno de estoque com rastreabilidade (autor, data/hora do servidor, motivo e efeito de cada operação), perfis `admin`/`employee` e regras de consistência aplicadas no banco.
 
@@ -87,18 +87,18 @@ docs/                     # handoffs e roteiros de demo
 ```
 
 ## Rotas principais (`app/src/App.tsx`)
-- `/` — landing (anônimo, com transição animada para `/login`) ou **painel RF14** (autenticado)
-- `/login`, `/recuperar-senha`, `/acesso-inativo`, `/configuracao` — acesso/estado
-- `/definir-senha` — destino dos links de convite (RF16) e recuperação (RF01): define a nova senha
-- `/produtos`, `/produtos/:id` — consulta, cadastro/edição/inativação (admin), saldo, histórico e estorno administrativo (RF09)
-- `/movimentacoes` — log global de operações/histórico (filtros, paginação, rastreabilidade e estorno elegível)
-- `/movimentacoes/nova` — registro de entrada (RF07)
-- `/movimentacoes/saida` — registro de saída (RF08)
-- `/movimentacoes/ajuste` — ajuste de estoque por contagem física (RF10; administrador)
-- `/categorias`, `/setores` — manutenção administrativa
-- `/relatorios` — exportação CSV de saldo e movimentações (RF15; administrador)
-- `/usuarios` — convites, perfis e situação de usuários (RF16; administrador)
-- `/painel`, `/app` — aliases que redirecionam para `/`
+- `/` - landing (anônimo, com transição animada para `/login`) ou **painel RF14** (autenticado)
+- `/login`, `/recuperar-senha`, `/acesso-inativo`, `/configuracao` - acesso/estado
+- `/definir-senha` - destino dos links de convite (RF16) e recuperação (RF01): define a nova senha
+- `/produtos`, `/produtos/:id` - consulta, cadastro/edição/inativação (admin), saldo, histórico e estorno administrativo (RF09)
+- `/movimentacoes` - log global de operações/histórico (filtros, paginação, rastreabilidade e estorno elegível)
+- `/movimentacoes/nova` - registro de entrada (RF07)
+- `/movimentacoes/saida` - registro de saída (RF08)
+- `/movimentacoes/ajuste` - ajuste de estoque por contagem física (RF10; administrador)
+- `/categorias`, `/setores` - manutenção administrativa
+- `/relatorios` - exportação CSV de saldo e movimentações (RF15; administrador)
+- `/usuarios` - convites, perfis e situação de usuários (RF16; administrador)
+- `/painel`, `/app` - aliases que redirecionam para `/`
 
 ## Configuração local
 
@@ -151,13 +151,13 @@ npx supabase db reset   # aplica migrations + supabase/seed.sql
 - **Credenciais de demo:** não ficam no repositório; são entregues à parte. Usuários de teste já vêm semeados no mock local.
 - **Dados:** catálogo, saldos e movimentações fictícias pré-populadas para exercitar RF01–RF16 na UI (consulta, manutenção admin, entrada/saída, estorno, contagem física, log global, painel com alertas, exportação CSV e convites/perfis de usuários). Convidados no mock nascem inativos e usam a senha padrão de demonstração.
 - **Persistência:** estado do mock salvo no navegador (`localStorage`, chaves `almox.offline.*`); limpar essas chaves restaura o seed.
-- **Limitação:** é uma simulação de frontend para demonstração/usabilidade — **não substitui** RLS, RPCs, constraints, transações, concorrência e demais garantias do PostgreSQL/Supabase. Para validação integrada/autoridade de regras, use o ambiente Supabase.
+- **Limitação:** é uma simulação de frontend para demonstração/usabilidade - **não substitui** RLS, RPCs, constraints, transações, concorrência e demais garantias do PostgreSQL/Supabase. Para validação integrada/autoridade de regras, use o ambiente Supabase.
 
 ### Demo online (GitHub Pages)
 Deploy automático a cada push em `main` via `.github/workflows/pages.yml` (build de `app/` em modo offline/mock, artefato publicado no GitHub Pages).
 
 - **URL:** https://gabirusky.github.io/almox/
-- **Modo:** offline/mock (`VITE_OFFLINE_MODE=true` no build) — sem Supabase e sem chaves no repositório.
+- **Modo:** offline/mock (`VITE_OFFLINE_MODE=true` no build) - sem Supabase e sem chaves no repositório.
 - **Credenciais:** fornecidas fora do repositório (usuários de teste já semeados).
 - **Dados:** ficam no navegador (`localStorage`, chaves `almox.offline.*`); limpar o storage restaura o seed. Nada é enviado a servidor.
 - **Deep links:** SPA com fallback `404.html` (cópia de `dist/index.html` gerada no build), então `/almox/produtos` e similares funcionam em acesso direto/refresh.
@@ -167,18 +167,18 @@ Pull requests rodam apenas verificação (`lint`, `typecheck`, `test`, `build`);
 Para ativar o Supabase depois: adicionar `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` como *repository variables*, remover `VITE_OFFLINE_MODE` do build e configurar Supabase Auth (Site URL `https://gabirusky.github.io/almox/`, redirect `/almox/definir-senha`). Detalhes em `docs/deploy-pages.md`.
 
 ## Migrations Supabase (ordem no repositório)
-- `20261109201907_t020_t029_rf01_rf04_schema.sql` — schema/base catálogo e perfis
-- `20261109201908_t030_t036_rls_audit.sql` — RLS e auditoria
-- `20261109201909_t040_t045_domain_logic.sql` — regras de domínio/RPC catálogo
-- `20261110190000_t094_t098_rf06_stock_history.sql` — histórico de movimentações (base RF06)
-- `20261110191000_t121_t128_rf07_entries.sql` — comandos/entrada atômica e idempotente (RF07)
-- `20261110192000_rf08_exits.sql` — saída atômica/idempotente e fechamento de escrita direta no saldo (RF08)
-- `20261110193000_rf09_reversals.sql` — estorno integral administrativo, com unicidade e proteção do saldo (RF09)
-- `20261111120000_rf10_rf11_inventory_and_history.sql` — ajuste pela contagem com versão esperada e consulta paginada filtrável (RF10/RF11)
-- `20261112120000_rf14_rf16_dashboard_export_users.sql` — painel (RF14), exportações auditadas (RF15), gestão de usuários com proteção do último admin e pedidos de convite (RF16)
+- `20261109201907_t020_t029_rf01_rf04_schema.sql` - schema/base catálogo e perfis
+- `20261109201908_t030_t036_rls_audit.sql` - RLS e auditoria
+- `20261109201909_t040_t045_domain_logic.sql` - regras de domínio/RPC catálogo
+- `20261110190000_t094_t098_rf06_stock_history.sql` - histórico de movimentações (base RF06)
+- `20261110191000_t121_t128_rf07_entries.sql` - comandos/entrada atômica e idempotente (RF07)
+- `20261110192000_rf08_exits.sql` - saída atômica/idempotente e fechamento de escrita direta no saldo (RF08)
+- `20261110193000_rf09_reversals.sql` - estorno integral administrativo, com unicidade e proteção do saldo (RF09)
+- `20261111120000_rf10_rf11_inventory_and_history.sql` - ajuste pela contagem com versão esperada e consulta paginada filtrável (RF10/RF11)
+- `20261112120000_rf14_rf16_dashboard_export_users.sql` - painel (RF14), exportações auditadas (RF15), gestão de usuários com proteção do último admin e pedidos de convite (RF16)
 
 ## Edge Function (RF16)
-- `supabase/functions/admin-invite` — valida o JWT do administrador, registra o pedido via RPC no contexto dele e só então usa a `service_role` (variável de ambiente da função) para `auth.admin.inviteUserByEmail`. O perfil nasce inativo.
+- `supabase/functions/admin-invite` - valida o JWT do administrador, registra o pedido via RPC no contexto dele e só então usa a `service_role` (variável de ambiente da função) para `auth.admin.inviteUserByEmail`. O perfil nasce inativo.
 - Local: `npx supabase functions serve admin-invite` · Hospedado: `npx supabase functions deploy admin-invite`.
 
 ## Estado e notas
@@ -212,5 +212,5 @@ Para ativar o Supabase depois: adicionar `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON
 - Metadados locais Supabase CLI ignorados: `supabase/.temp/` (commit `26d6cf3`).
 
 ## Planejamento
-- `PLAN.md` / `TASKS.md` / `CONTEXT.md` — apoio local do agente (gitignored).
+- `PLAN.md` / `TASKS.md` / `CONTEXT.md` - apoio local do agente (gitignored).
 - Próximas entregas: homologação integrada RF08–RF11 e validações operacionais dos requisitos seguintes.
