@@ -150,7 +150,7 @@ O build de produção agora usa o Supabase real. O passo a passo completo está 
 2. **Workflow:** `VITE_OFFLINE_MODE` removido do build de produção; um guard falha no push em `main` se os secrets não existirem.
 3. **Supabase Auth:** Site URL `https://gabirusky.github.io/almox/` e redirect allowlist `https://gabirusky.github.io/almox/definir-senha`.
 4. **Edge Function `admin-invite`:** `npx supabase functions deploy admin-invite`; `ALMOX_ALLOWED_ORIGIN` restringe o CORS.
-5. **E-mail:** Resend via SMTP custom. A chave da Resend fica no Supabase (Authentication → Emails → SMTP Settings), não no GitHub.
+5. **E-mail:** provedor padrão do Supabase Auth (sem domínio externo), limitado a e-mails da organização (2/h). Convites para terceiros exigem SMTP próprio.
 
 Sem os secrets, o build falha (ou, em PRs, continua no mock). Sem as migrations, o login até funciona, mas as operações protegidas falham com erro de RLS/RPC.
 

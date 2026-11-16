@@ -2,7 +2,7 @@
 
 Sistema web para controle interno de estoque com rastreabilidade (autor, data/hora do servidor, motivo e efeito de cada operação), perfis `admin`/`employee` e regras de consistência aplicadas no banco.
 
-> **Status:** código implementado em **RF01–RF11 e RF14–RF16** (acesso, catálogo, consulta, saldo/histórico, entrada, saída, estorno, contagem física, log global, painel de estoque mínimo, exportação CSV e gestão de usuários por convite). A integração com um projeto Supabase free está documentada ponta a ponta em `docs/supabase-go-live.md` (migrations, Auth, Resend, Edge Function, GitHub Secrets e checklist RF01–RF16). RF12 (tela de auditoria) e RF13 (já aplicado nas operações via `stock_commands`) seguem como próximos passos de interface. Documento-fonte: `Análise de Requisitos e Arquitetura de Software.md`.
+> **Status:** código implementado em **RF01–RF11 e RF14–RF16** (acesso, catálogo, consulta, saldo/histórico, entrada, saída, estorno, contagem física, log global, painel de estoque mínimo, exportação CSV e gestão de usuários por convite). A integração com um projeto Supabase free está documentada ponta a ponta em `docs/supabase-go-live.md` (migrations, Auth, e-mail padrão, Edge Function, GitHub Secrets e checklist RF01–RF16). RF12 (tela de auditoria) e RF13 (já aplicado nas operações via `stock_commands`) seguem como próximos passos de interface. Documento-fonte: `Análise de Requisitos e Arquitetura de Software.md`.
 
 ## Objetivo (MVP)
 Consulta confiável de saldo, movimentações rastreáveis e correções auditáveis em um único almoxarifado (escopo analisado RF01–RF16). Fora do MVP: multi-depósito, compras/fiscal, patrimônio individual, lotes/séries, anexos, aprovações, offline, ERP.
@@ -158,13 +158,13 @@ Deploy automático a cada push em `main` via `.github/workflows/pages.yml`. O bu
 
 - **URL:** https://gabirusky.github.io/almox/
 - **Backend:** projeto Supabase free (região `us-east-1`), migrations versionadas + Edge Function `admin-invite`.
-- **E-mail:** Resend via SMTP custom (a chave fica no Supabase, não no GitHub).
+- **E-mail:** provedor padrão do Supabase Auth (sem domínio externo; apenas e-mails da organização, 2/h).
 - **Build:** `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` vêm de **GitHub Secrets**. O workflow falha no push em `main` se os secrets não existirem, para não publicar o mock silenciosamente.
 - **Deep links:** SPA com fallback `404.html` (cópia de `dist/index.html` gerada no build), então `/almox/produtos` e similares funcionam em acesso direto/refresh.
 
 Pull requests rodam apenas verificação (`lint`, `typecheck`, `test`, `build`); deploy só em `main`. Pré-requisito no GitHub: **Settings → Pages → Source = GitHub Actions**.
 
-Passo a passo completo (criação do projeto, Resend, Auth, migrations, admin `gabirusky`, seeds, secrets e checklist): `docs/supabase-go-live.md`.
+Passo a passo completo (criação do projeto, Auth, migrations, admin `gabirusky`, seeds, secrets e checklist): `docs/supabase-go-live.md`.
 
 ## Migrations Supabase (ordem no repositório)
 - `20261109201907_t020_t029_rf01_rf04_schema.sql` - schema/base catálogo e perfis
@@ -197,7 +197,7 @@ Passo a passo completo (criação do projeto, Resend, Auth, migrations, admin `g
 - **RF11:** consulta global implementada na UI/API (`listMovements` com suporte offline) e no banco via RPC `almox_search_stock_movements` (filtros/paginação e vínculos de estorno). A migration `20261111120000_rf10_rf11_inventory_and_history.sql` adiciona suporte a RF10/RF11.
 - **Modo offline/mock:** suporte a demo local sem Supabase (auto ou `VITE_OFFLINE_MODE=true`) para navegação dos fluxos principais, incluindo o log global; não substitui validação/garantias do banco.
 - **Implementado no código:** RF01–RF11 e RF13–RF16. Saída usa `almox_register_exit` para validar saldo, setor e permissão no banco; a tela exige revisão antes do envio.
-- **Integração Supabase:** runbook completo em `docs/supabase-go-live.md`. Já aplicadas: migrations (10), admin `gabirusky`, seeds de catálogo/demo e deploy no Pages. Pendente: Resend SMTP, URLs do Auth, deploy da Edge Function e checklist RF01–RF16.
+- **Integração Supabase:** runbook completo em `docs/supabase-go-live.md`. Já aplicadas: migrations (10), admin `gabirusky`, seeds de catálogo/demo e deploy no Pages. Pendente: desativar custom SMTP, URLs do Auth, deploy da Edge Function e checklist RF01–RF16.
 - **Pendente de validação integrada:** aplicar migrations no projeto hospedado e verificar RLS/matriz de acesso, filtros/contagem/paginação em dados reais, concorrência, replay, rollback de auditoria e vínculo de estorno cross-page (especialmente RF08–RF11). Ambiente sem Docker/Supabase não valida esses cenários ponta a ponta.
 - **Qualidade frontend:** scripts disponíveis `dev`, `build`, `typecheck`, `test`, `lint`. Cobertura automatizada de banco/harness integrado pode exigir ambiente Supabase específico.
 - **Privacidade/segredos:** sem `service_role` no frontend; sem senhas/tokens/chaves no repo.

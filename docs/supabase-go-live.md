@@ -5,10 +5,10 @@ Este documento é o passo a passo completo para colocar o ALMOX real (Supabase +
 - **App real:** <https://gabirusky.github.io/almox/>
 - **Repositório:** <https://github.com/gabirusky/almox> (público, exigência do Pages free)
 - **Banco:** projeto Supabase free `nkaffjqlgbjfyajatdoh`, região **us-east-1** (N. Virginia)
-- **E-mail transacional:** Resend (SMTP custom)
+- **E-mail transacional:** provedor padrão do Supabase Auth (sem domínio externo; apenas e-mails da organização)
 - **Admin:** `gabirusky`
 
-> **Importante:** com o provedor de e-mail padrão do Supabase, o Auth só envia mensagens para endereços que pertencem à organização Supabase (2 e-mails/hora). Por isso este guia usa **Resend**. A chave da Resend **não** vai para o GitHub: ela é configurada em **Supabase → Authentication → Emails → SMTP Settings**.
+> **Importante:** sem um domínio com DNS próprio (`gabirusky.github.io` é controlado pelo GitHub), o projeto usa o e-mail padrão do Supabase Auth. Ele só entrega mensagens para endereços que pertencem à organização Supabase e é limitado a **2 e-mails/hora**. Isso atende à recuperação de senha do admin, mas **convites para outros e-mails não chegam**. Para convidar terceiros no futuro, será preciso configurar SMTP próprio com domínio verificado.
 
 ---
 
@@ -20,7 +20,7 @@ Este documento é o passo a passo completo para colocar o ALMOX real (Supabase +
 - [x] Usuário Auth + perfil `gabirusky` (admin ativo) criados. A senha inicial foi entregue fora do repositório e deve ser trocada após o primeiro login.
 - [x] `seed_catalog.sql` (4 categorias, 4 setores) e `seed_demo_prod.sql` (3 produtos, 3 saldos, 4 movimentos) executados.
 - [ ] Edge Function `admin-invite` + `ALMOX_ALLOWED_ORIGIN` — depende de `SUPABASE_ACCESS_TOKEN` (não disponível no ambiente de execução).
-- [ ] Resend SMTP + configuração de URLs do Auth no dashboard.
+- [ ] Desativar custom SMTP (usar provedor padrão) + configuração de URLs do Auth no dashboard.
 - [ ] Checklist RF01–RF16.
 
 > O projeto foi criado em `us-east-1`, não em São Paulo. Os comandos abaixo usam o pooler `aws-0-us-east-1.pooler.supabase.com:5432`.
@@ -50,7 +50,7 @@ O que este guia adiciona:
 ## 2. Pré-requisitos
 
 - Conta no Supabase (organization free; projeto novo).
-- Conta no Resend + acesso ao DNS do domínio.
+- Provedor de e-mail padrão do Supabase (sem domínio externo; apenas e-mails da organização).
 - Node.js 20+ e npm na máquina.
 - Supabase CLI via `npx` (não precisa de Docker para `db push` / `functions deploy`).
 - Permissão de administrador no repositório GitHub para criar secrets.
@@ -73,27 +73,20 @@ O que este guia adiciona:
 
 ---
 
-## 4. Configurar o Resend (SMTP)
+## 4. E-mail: provedor padrão do Supabase (sem domínio)
 
-1. Crie conta em <https://resend.com>.
-2. **Domains → Add Domain**: `mail.<seu-dominio>`.
-3. Adicione os registros DNS que o Resend mostrar (MX/TXT para SPF, CNAME/TXT para DKIM).
-4. Aguarde o status **Verified**.
-5. **API Keys → Create API Key** (permissão Sending) e copie a chave.
-6. No Supabase: **Authentication → Emails → SMTP Settings** → ative SMTP custom:
-   - Host: `smtp.resend.com`
-   - Port: `587` (ou `465`)
-   - Username: `resend`
-   - Password: a chave da Resend
-   - Sender email: `no-reply@mail.<seu-dominio>`
-   - Sender name: `ALMOX`
-7. Envie um e-mail de teste para um endereço que **não** seja membro da organização Supabase.
-8. **Authentication → Rate Limits**: e-mails enviados ≥ `30/hour`.
-9. Opcional: **Authentication → Email Templates** → traduza “Invite user” e “Reset password” para PT-BR, mantendo `{{ .ConfirmationURL }}`.
+Como não há domínio com DNS próprio (`gabirusky.github.io` é controlado pelo GitHub), este projeto usa o **provedor de e-mail padrão do Supabase Auth**.
 
-> A chave da Resend fica **somente** no Supabase. Não é secret do GitHub Actions.
+1. No Supabase: **Authentication → Emails → SMTP Settings** → deixe **Enable custom SMTP DESLIGADO**. Se você tinha ligado o formulário da Resend, desligue e salve.
+2. **Authentication → Rate Limits**: o limite padrão é `2 emails/hour`. Não há como aumentá-lo sem SMTP próprio.
+3. **Authentication → Email Templates** (opcional): traduza “Reset password” e “Invite user” para PT-BR, mantendo `{{ .ConfirmationURL }}`.
 
-> Se você também guardou a chave da Resend como GitHub Secret, ela não é consumida pelo workflow: o único consumidor é o Supabase Auth. Configure-a em **Authentication → Emails → SMTP Settings**.
+**Limitação conhecida:** o Auth padrão só entrega mensagens para endereços que são membros da organização Supabase (ex.: o e-mail do dono do projeto). Portanto:
+
+- ✅ recuperação de senha do admin funciona;
+- ❌ convites para funcionários com outros e-mails falham com `Email address not authorized`.
+
+Se no futuro você precisar de convites para terceiros, configure um SMTP próprio com domínio verificado (Resend, Brevo, Gmail, etc.) e atualize este documento.
 
 ---
 
@@ -193,7 +186,7 @@ No GitHub → **Settings → Secrets and variables → Actions → Secrets → N
 | `VITE_SUPABASE_URL` | `https://<PROJECT_REF>.supabase.co` |
 | `VITE_SUPABASE_ANON_KEY` | chave `anon`/publishable (pública por design) |
 
-**Não** coloque `service_role` nem a chave da Resend no GitHub.
+**Não** coloque `service_role` no GitHub. A chave anon é pública por design; as regras de acesso ficam no RLS/RPC.
 
 ### 9.2 Publicar
 
@@ -207,19 +200,17 @@ O workflow falha de propósito no push em `main` se os secrets não existirem, p
 
 ---
 
-## 10. Primeiro login e teste de convite
+## 10. Primeiro login e recuperação de senha
 
-1. Abra `/almox/` e entre com o admin `gabirusky`.
+1. Abra `/almox/` e entre com o admin `gabirusky` e a senha inicial entregue fora do repositório.
 2. O painel deve mostrar os contadores/alertas do seed demo.
 3. `/almox/produtos`: 3 produtos; abra um e confira o histórico.
-4. `/almox/usuarios` → convide um e-mail real (perfil `employee`).
-5. Verifique o e-mail no Resend; o link deve abrir:
-   `https://gabirusky.github.io/almox/definir-senha`
-6. Defina a senha. Tente entrar: deve aparecer “acesso inativo” (o perfil nasce inativo).
-7. Volte como admin, habilite o usuário e peça para entrar novamente.
-8. `/almox/recuperar-senha` → solicite recuperação → o link também deve abrir `/almox/definir-senha`.
+4. Troque a senha: `/almox/recuperar-senha` → informe `gpereiragsantos@gmail.com` → o e-mail do provedor padrão chega (desde que esse endereço pertença à organização Supabase) → o link abre `https://gabirusky.github.io/almox/definir-senha` → defina uma nova senha.
+5. Isso valida o redirect com `/almox/` e o fluxo RF01.
 
-Essa sequência valida Edge Function + Resend + correção de redirect + RLS + ciclo de convite.
+### Convites (RF16) — limitação atual
+
+O botão de convite em `/almox/usuarios` depende da Edge Function `admin-invite` (ainda pendente de deploy) e, com o e-mail padrão, só entrega para endereços que são membros da organização Supabase. Para testar convites, use um e-mail da organização ou configure um SMTP próprio com domínio verificado.
 
 ---
 
@@ -260,7 +251,7 @@ npx supabase@3 db dump -f "backup_$(Get-Date -Format yyyyMMdd_HHmmss).sql"
 
 Se o `db dump` exigir Docker, use `pg_dump` com a connection string do pooler (Project Settings → Database).
 - **Logs:** retenção de 1 dia. Consulte Auth/Edge Functions quando um convite falhar.
-- **Resend:** free ~3.000/mês (~100/dia). Acompanhe o painel da Resend.
+- **E-mail:** provedor padrão do Supabase; limite de 2 mensagens/hora; apenas endereços da organização. Sem SMTP próprio (sem domínio).
 - **Chaves:** a anon é pública por design; `service_role` nunca vai para o frontend. Rotacione se vazar.
 - **Limites:** 500 MB de banco, 5 GB de egress, 50k MAU. A restrição real é a pausa por ociosidade.
 
@@ -271,11 +262,11 @@ Se o `db dump` exigir Docker, use `pg_dump` com a connection string do pooler (P
 | Sintoma | Causa provável | Ação |
 |---|---|---|
 | Login “credenciais inválidas” | Usuário não confirmado | Recrie o admin com **Auto Confirm User** |
-| Convite não chega | Resend não verificado / limite / spam | Veja logs da Resend e Auth; confira spam |
+| Convite não chega | E-mail não é membro da organização / limite 2/h / Edge Function não deployada | Use e-mail da organização ou configure SMTP próprio; confira logs do Auth |
 | Link abre `/definir-senha` sem `/almox/` | Correção de redirect não publicada | Verifique `import.meta.env.BASE_URL` e faça redeploy |
 | App em modo mock após deploy | Secrets ausentes | Crie `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` |
 | Guard do workflow falha | Mesmo caso | Crie os secrets |
-| `Email address not authorized` | SMTP padrão ainda ativo | Conclua o SMTP custom (Resend) |
+| `Email address not authorized` | Destinatário não é membro da organização | Use outro e-mail ou configure SMTP próprio com domínio verificado |
 | `FUNCTION_MISCONFIGURED` | Secret da function ausente | Configure `SUPABASE_SERVICE_ROLE_KEY` |
 | Erro de CORS no convite | `ALMOX_ALLOWED_ORIGIN` divergente | `https://gabirusky.github.io` |
 | `ACTIVE_PROFILE_REQUIRED` | Sem perfil ou inativo | Rode `bootstrap_admin.sql` / habilite o usuário |
