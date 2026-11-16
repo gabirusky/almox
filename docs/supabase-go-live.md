@@ -140,13 +140,7 @@ Notas:
    - Email: seu e-mail real
    - Password: senha forte (≥ 8 caracteres), salva no gerenciador
    - **Auto Confirm User: ON**
-2. Abra `supabase/bootstrap_admin.sql` e substitua:
-
-```sql
-v_email text := 'COLOQUE_SEU_EMAIL_AQUI';
-```
-
-pelo e-mail exato cadastrado no passo 1. O nome já está como `gabirusky`.
+2. Abra `supabase/bootstrap_admin.sql` e confirme o e-mail em `v_email` (já preenchido com `gpereiragsantos@gmail.com`, o e-mail dos commits). Se o e-mail usado no Supabase Auth for diferente, substitua antes de executar. O nome já está como `gabirusky`.
 
 3. **SQL Editor** → cole o conteúdo de `supabase/bootstrap_admin.sql` → execute.
 4. Deve retornar uma linha `admin | true`.

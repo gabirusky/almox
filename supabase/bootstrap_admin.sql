@@ -5,16 +5,12 @@
 --      - email: the admin's real email
 --      - password: a strong password (the app requires at least 8 chars)
 --      - Auto Confirm User: ON
---   2. Replace COLOQUE_SEU_EMAIL_AQUI below with that exact email.
---
--- Then run this file in the SQL Editor. It fails loudly if the auth user is
--- missing, so a typo cannot silently leave the project without an admin.
--- The profile is created active with role admin (RN17 / last-admin protection
--- is enforced later by the RF16 functions).
+--   2. Confirme o e-mail abaixo (preenchido com o e-mail dos commits do autor;
+--      se o e-mail do Auth for diferente, substitua antes de executar).
 
 do $$
 declare
-  v_email text := 'COLOQUE_SEU_EMAIL_AQUI';
+  v_email text := 'gpereiragsantos@gmail.com';
   v_name text := 'gabirusky';
   v_user_id uuid;
 begin
