@@ -1,8 +1,8 @@
 # Deploy no GitHub Pages — guia simples
 
-Este documento explica, em linguagem simples, como o frontend do ALMOX é publicado como **demo online** no GitHub Pages, por que existem algumas configurações específicas no código e o que fazer quando for a hora de conectar o Supabase.
+Este documento explica, em linguagem simples, como o frontend do ALMOX é publicado no GitHub Pages, por que existem algumas configurações específicas no código e como o build real se conecta ao Supabase. O passo a passo completo do Supabase está em [`supabase-go-live.md`](./supabase-go-live.md).
 
-Pipeline: [`.github/workflows/pages.yml`](../.github/workflows/pages.yml) · App: [`app/`](../app) · Demo: <https://gabirusky.github.io/almox/>
+Pipeline: [`.github/workflows/pages.yml`](../.github/workflows/pages.yml) · App: [`app/`](../app) · App publicado: <https://gabirusky.github.io/almox/>
 
 ## 1. Ideia geral
 
@@ -13,7 +13,7 @@ Fluxo resumido:
 ```
 push em main
   └─ Actions roda: instalar → lint → typecheck → test → build
-       └─ build gera app/dist/ (modo offline/mock, sem Supabase)
+       └─ build gera app/dist/ com o Supabase real (VITE_SUPABASE_URL/ANON_KEY)
             └─ dist/ é publicado em https://gabirusky.github.io/almox/
 ```
 
@@ -71,7 +71,7 @@ O frontend detecta automaticamente que não há Supabase configurado e passa a u
 - persistência em `localStorage`, com chaves `almox.offline.*`;
 - login simulado com usuários de teste pré-semeados (credenciais entregues fora do repositório).
 
-O workflow força `VITE_OFFLINE_MODE=true` para deixar a intenção explícita e impedir que o build mude de modo caso variáveis do Supabase sejam adicionadas ao repositório no futuro.
+O modo offline/mock continua sendo usado no desenvolvimento local e nos builds de pull request. O build de produção (push em `main`) não força mais `VITE_OFFLINE_MODE`: ele recebe `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` dos **GitHub Secrets**. Se os secrets não existirem, o workflow falha de propósito, para não publicar o mock silenciosamente.
 
 Pontos importantes:
 
@@ -98,7 +98,7 @@ Job `check` (roda em `app/`):
 4. `npm run lint` — oxlint. Hoje avisos não quebram o build; erros quebram.
 5. `npm run typecheck` — TypeScript estrito nas configs de app e node.
 6. `npm run test` — Vitest (20 testes).
-7. `npm run build` — `tsc -b` + `vite build`, com `VITE_BASE_PATH=/almox/` e `VITE_OFFLINE_MODE=true`.
+7. `npm run build` — `tsc -b` + `vite build`, com `VITE_BASE_PATH=/almox/` e `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` vindos dos GitHub Secrets.
 8. `cp dist/index.html dist/404.html` — fallback de rotas descrito acima.
 9. `actions/upload-pages-artifact` — empacota `app/dist`.
 
@@ -142,23 +142,17 @@ Feita uma vez, manualmente, no repositório:
 | Login mock não funciona | `localStorage` com estado antigo | limpar as chaves `almox.offline.*` no navegador |
 | Página interna mostra tela errada após deploy | cache de HTML + rota antiga | recarregar com cache limpo |
 
-## 10. Fase 2 — conectar o Supabase
+## 10. Supabase conectado (fase 2 concluída)
 
-Quando o projeto Supabase estiver pronto:
+O build de produção agora usa o Supabase real. O passo a passo completo está em [`supabase-go-live.md`](./supabase-go-live.md):
 
-1. Em **Settings → Secrets and variables → Actions → Variables**, criar:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-   A chave `anon` é pública por design (ela vai dentro do bundle do navegador). Mesmo assim, **nunca** usar `service_role` no frontend.
-2. No workflow, remover a linha `VITE_OFFLINE_MODE: "true"` do passo de build.
-3. No Supabase, em **Authentication → URL Configuration**:
-   - Site URL: `https://gabirusky.github.io/almox/`
-   - Redirect allowlist: incluir `https://gabirusky.github.io/almox/definir-senha`
-   Sem isso, links de recuperação de senha apontam para `localhost` e quebram no site publicado.
-4. A Edge Function `admin-invite` (convites de usuário) precisa de pipeline próprio com `supabase functions deploy`. Ela não faz parte do Pages.
-5. Opcional: manter a demo offline viva em `/almox/demo/`, gerando um segundo build com `VITE_BASE_PATH=/almox/demo/` e copiando para `dist/demo/` antes do upload. Decisão para depois.
+1. **GitHub Secrets:** `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (a anon é pública por design; **nunca** `service_role`).
+2. **Workflow:** `VITE_OFFLINE_MODE` removido do build de produção; um guard falha no push em `main` se os secrets não existirem.
+3. **Supabase Auth:** Site URL `https://gabirusky.github.io/almox/` e redirect allowlist `https://gabirusky.github.io/almox/definir-senha`.
+4. **Edge Function `admin-invite`:** `npx supabase functions deploy admin-invite`; `ALMOX_ALLOWED_ORIGIN` restringe o CORS.
+5. **E-mail:** Resend via SMTP custom. A chave da Resend fica no Supabase (Authentication → Emails → SMTP Settings), não no GitHub.
 
-Enquanto a fase 2 não acontece, o site publicado é uma demo de interface — sem persistência real e sem autenticação de verdade.
+Sem os secrets, o build falha (ou, em PRs, continua no mock). Sem as migrations, o login até funciona, mas as operações protegidas falham com erro de RLS/RPC.
 
 ## 11. Limitações conhecidas
 
@@ -167,7 +161,7 @@ Enquanto a fase 2 não acontece, o site publicado é uma demo de interface — s
 - **Renomear o repositório** muda a URL e exige atualizar `VITE_BASE_PATH`, `README.md` e este documento.
 - **Domínio próprio** depois: `base` volta para `/`, adicionar arquivo `CNAME`, configurar DNS e aguardar a emissão do certificado.
 - **Fontes do Google:** carregadas por CDN externo; sem impacto no deploy, mas dependem de rede externa.
-- **Demo pública:** qualquer pessoa pode usar o mock; os dados ficam só no navegador dela, então não há vazamento nem gravação em servidor.
+- **App real:** o site publicado exige login; os dados ficam no Supabase e são protegidos por RLS. A landing é pública, mas as rotas protegidas e os dados não.
 
 ## 12. Onde mexer em cada situação
 
@@ -178,4 +172,6 @@ Enquanto a fase 2 não acontece, o site publicado é uma demo de interface — s
 | Ícone e metadados do HTML | `app/index.html` |
 | Etapas de verificação/deploy | `.github/workflows/pages.yml` |
 | Credenciais e textos da demo | `README.md` (seção "Demo online") + `app/src/lib/mock-store.ts` |
-| Ativar Supabase | workflow (remover `VITE_OFFLINE_MODE`) + variáveis no GitHub + Auth do Supabase |
+| Segredos/URLs do Supabase | GitHub Secrets `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` |
+| Migrations / Edge Function | `npx supabase db push --remote` / `npx supabase functions deploy admin-invite` |
+| Admin e seeds | `supabase/bootstrap_admin.sql`, `supabase/seed_catalog.sql`, `supabase/seed_demo_prod.sql` |

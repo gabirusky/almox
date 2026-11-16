@@ -104,7 +104,7 @@ export async function inviteUser(input: InviteInput): Promise<AccessRequest> {
       displayName: input.displayName.trim(),
       role: input.role,
       operationKey: input.operationKey,
-      redirectTo: `${window.location.origin}/definir-senha`,
+      redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}definir-senha`,
     },
   })
   if (error) {

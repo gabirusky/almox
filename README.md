@@ -2,7 +2,7 @@
 
 Sistema web para controle interno de estoque com rastreabilidade (autor, data/hora do servidor, motivo e efeito de cada operação), perfis `admin`/`employee` e regras de consistência aplicadas no banco.
 
-> **Status:** código implementado em **RF01–RF11 e RF14–RF16** (acesso, catálogo, consulta, saldo/histórico, entrada, saída, estorno, contagem física, log global, painel de estoque mínimo, exportação CSV e gestão de usuários por convite). RF08–RF11 e RF14–RF16 requerem aplicação das migrations e validação integrada no Supabase antes de uso real. RF12 (tela de auditoria) e RF13 (já aplicado nas operações via `stock_commands`) seguem como próximos passos de interface. Documento-fonte: `Análise de Requisitos e Arquitetura de Software.md`.
+> **Status:** código implementado em **RF01–RF11 e RF14–RF16** (acesso, catálogo, consulta, saldo/histórico, entrada, saída, estorno, contagem física, log global, painel de estoque mínimo, exportação CSV e gestão de usuários por convite). A integração com um projeto Supabase free está documentada ponta a ponta em `docs/supabase-go-live.md` (migrations, Auth, Resend, Edge Function, GitHub Secrets e checklist RF01–RF16). RF12 (tela de auditoria) e RF13 (já aplicado nas operações via `stock_commands`) seguem como próximos passos de interface. Documento-fonte: `Análise de Requisitos e Arquitetura de Software.md`.
 
 ## Objetivo (MVP)
 Consulta confiável de saldo, movimentações rastreáveis e correções auditáveis em um único almoxarifado (escopo analisado RF01–RF16). Fora do MVP: multi-depósito, compras/fiscal, patrimônio individual, lotes/séries, anexos, aprovações, offline, ERP.
@@ -153,18 +153,18 @@ npx supabase db reset   # aplica migrations + supabase/seed.sql
 - **Persistência:** estado do mock salvo no navegador (`localStorage`, chaves `almox.offline.*`); limpar essas chaves restaura o seed.
 - **Limitação:** é uma simulação de frontend para demonstração/usabilidade - **não substitui** RLS, RPCs, constraints, transações, concorrência e demais garantias do PostgreSQL/Supabase. Para validação integrada/autoridade de regras, use o ambiente Supabase.
 
-### Demo online (GitHub Pages)
-Deploy automático a cada push em `main` via `.github/workflows/pages.yml` (build de `app/` em modo offline/mock, artefato publicado no GitHub Pages).
+### App online (GitHub Pages + Supabase)
+Deploy automático a cada push em `main` via `.github/workflows/pages.yml`. O build de produção usa o Supabase real; o modo offline/mock fica apenas para desenvolvimento local e PRs.
 
 - **URL:** https://gabirusky.github.io/almox/
-- **Modo:** offline/mock (`VITE_OFFLINE_MODE=true` no build) - sem Supabase e sem chaves no repositório.
-- **Credenciais:** fornecidas fora do repositório (usuários de teste já semeados).
-- **Dados:** ficam no navegador (`localStorage`, chaves `almox.offline.*`); limpar o storage restaura o seed. Nada é enviado a servidor.
+- **Backend:** projeto Supabase free (região São Paulo), migrations versionadas + Edge Function `admin-invite`.
+- **E-mail:** Resend via SMTP custom (a chave fica no Supabase, não no GitHub).
+- **Build:** `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` vêm de **GitHub Secrets**. O workflow falha no push em `main` se os secrets não existirem, para não publicar o mock silenciosamente.
 - **Deep links:** SPA com fallback `404.html` (cópia de `dist/index.html` gerada no build), então `/almox/produtos` e similares funcionam em acesso direto/refresh.
 
 Pull requests rodam apenas verificação (`lint`, `typecheck`, `test`, `build`); deploy só em `main`. Pré-requisito no GitHub: **Settings → Pages → Source = GitHub Actions**.
 
-Para ativar o Supabase depois: adicionar `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` como *repository variables*, remover `VITE_OFFLINE_MODE` do build e configurar Supabase Auth (Site URL `https://gabirusky.github.io/almox/`, redirect `/almox/definir-senha`). Detalhes em `docs/deploy-pages.md`.
+Passo a passo completo (criação do projeto, Resend, Auth, migrations, admin `gabirusky`, seeds, secrets e checklist): `docs/supabase-go-live.md`.
 
 ## Migrations Supabase (ordem no repositório)
 - `20261109201907_t020_t029_rf01_rf04_schema.sql` - schema/base catálogo e perfis
@@ -177,9 +177,16 @@ Para ativar o Supabase depois: adicionar `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON
 - `20261111120000_rf10_rf11_inventory_and_history.sql` - ajuste pela contagem com versão esperada e consulta paginada filtrável (RF10/RF11)
 - `20261112120000_rf14_rf16_dashboard_export_users.sql` - painel (RF14), exportações auditadas (RF15), gestão de usuários com proteção do último admin e pedidos de convite (RF16)
 
+### Seeds e bootstrap de produção (hosted)
+- `supabase/seed_catalog.sql` - categorias/setores de referência; seguro para o banco hospedado (não cria usuários).
+- `supabase/bootstrap_admin.sql` - cria o perfil `admin` ativo para `gabirusky`; exige que o usuário já exista em Auth com Auto Confirm.
+- `supabase/seed_demo_prod.sql` - 3 produtos, 3 saldos e 4 movimentos fictícios para demonstração; execute uma única vez em banco novo.
+- `supabase/seed.sql` é **local/dev**: cria usuários `@almox.test` e grava em `auth.*`. **Não** execute no projeto hospedado.
+
 ## Edge Function (RF16)
 - `supabase/functions/admin-invite` - valida o JWT do administrador, registra o pedido via RPC no contexto dele e só então usa a `service_role` (variável de ambiente da função) para `auth.admin.inviteUserByEmail`. O perfil nasce inativo.
 - Local: `npx supabase functions serve admin-invite` · Hospedado: `npx supabase functions deploy admin-invite`.
+- CORS: configure `ALMOX_ALLOWED_ORIGIN=https://gabirusky.github.io` com `npx supabase secrets set` para restringir a origem. `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` são injetadas automaticamente.
 
 ## Estado e notas
 - **UI:** navegação lateral agrupada (Visão geral, Estoque, Cadastros, Administração) com menu em gaveta no mobile, painel com faixa de destaque, landing e login em duas colunas; todas as telas usam os tokens Ledger Bench e componentes shadcn/ui existentes. Frontend modernizado com design system "Ledger Bench" (tokens/tema, tipografia, shell compartilhado, primitivas e componentes reutilizáveis shadcn/ui), logo ALMOX e melhorias de acessibilidade/responsividade nas rotas existentes.
@@ -189,12 +196,14 @@ Para ativar o Supabase depois: adicionar `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON
 - **RF10:** a rota administrativa `/movimentacoes/ajuste` registra a contagem física e o motivo. `almox_adjust_stock_by_count` verifica a versão lida sob bloqueios na ordem comando → produto → saldo; se houver alteração concorrente, responde `STOCK_VERSION_CHANGED` e exige nova conferência. Saldo, movimento, auditoria e resultado idempotente são atômicos.
 - **RF11:** consulta global implementada na UI/API (`listMovements` com suporte offline) e no banco via RPC `almox_search_stock_movements` (filtros/paginação e vínculos de estorno). A migration `20261111120000_rf10_rf11_inventory_and_history.sql` adiciona suporte a RF10/RF11.
 - **Modo offline/mock:** suporte a demo local sem Supabase (auto ou `VITE_OFFLINE_MODE=true`) para navegação dos fluxos principais, incluindo o log global; não substitui validação/garantias do banco.
-- **Implementado no código:** RF01–RF11. Saída usa `almox_register_exit` para validar saldo, setor e permissão no banco; a tela exige revisão antes do envio.
-- **Pendente de validação integrada:** aplicar migrations em Supabase local/homologação e verificar RLS/matriz de acesso, filtros/contagem/paginação em dados reais, concorrência, replay, rollback de auditoria e vínculo de estorno cross-page (especialmente RF08–RF11). Ambiente sem Docker/Supabase não valida esses cenários ponta a ponta.
+- **Implementado no código:** RF01–RF11 e RF13–RF16. Saída usa `almox_register_exit` para validar saldo, setor e permissão no banco; a tela exige revisão antes do envio.
+- **Integração Supabase:** runbook completo em `docs/supabase-go-live.md` (projeto free, Resend, Auth, migrations, Edge Function, secrets, bootstrap `gabirusky`, seeds e checklist RF01–RF16). Falta apenas executar o runbook no projeto recém-criado e marcar o checklist.
+- **Pendente de validação integrada:** aplicar migrations no projeto hospedado e verificar RLS/matriz de acesso, filtros/contagem/paginação em dados reais, concorrência, replay, rollback de auditoria e vínculo de estorno cross-page (especialmente RF08–RF11). Ambiente sem Docker/Supabase não valida esses cenários ponta a ponta.
 - **Qualidade frontend:** scripts disponíveis `dev`, `build`, `typecheck`, `test`, `lint`. Cobertura automatizada de banco/harness integrado pode exigir ambiente Supabase específico.
 - **Privacidade/segredos:** sem `service_role` no frontend; sem senhas/tokens/chaves no repo.
 
 ## Docs de apoio
+- **Supabase free (passo a passo completo):** `docs/supabase-go-live.md`
 - Demo manual RF01–RF04: `docs/demo-rf01-rf04.md`
 - Handoff RF05–RF06 (histórico/estado atual): `docs/rf05-rf06-handoff.md`
 - Checks SQL RNF01: `supabase/tests/rf01_rf04_permission_checks.sql`
@@ -213,4 +222,4 @@ Para ativar o Supabase depois: adicionar `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON
 
 ## Planejamento
 - `PLAN.md` / `TASKS.md` / `CONTEXT.md` - apoio local do agente (gitignored).
-- Próximas entregas: homologação integrada RF08–RF11 e validações operacionais dos requisitos seguintes.
+- Próximas entregas: executar `docs/supabase-go-live.md` no projeto Supabase criado, marcar o checklist RF01–RF16 e cumprir a homologação integrada RF08–RF11.
