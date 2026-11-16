@@ -157,7 +157,7 @@ npx supabase db reset   # aplica migrations + supabase/seed.sql
 Deploy automático a cada push em `main` via `.github/workflows/pages.yml`. O build de produção usa o Supabase real; o modo offline/mock fica apenas para desenvolvimento local e PRs.
 
 - **URL:** https://gabirusky.github.io/almox/
-- **Backend:** projeto Supabase free (região São Paulo), migrations versionadas + Edge Function `admin-invite`.
+- **Backend:** projeto Supabase free (região `us-east-1`), migrations versionadas + Edge Function `admin-invite`.
 - **E-mail:** Resend via SMTP custom (a chave fica no Supabase, não no GitHub).
 - **Build:** `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` vêm de **GitHub Secrets**. O workflow falha no push em `main` se os secrets não existirem, para não publicar o mock silenciosamente.
 - **Deep links:** SPA com fallback `404.html` (cópia de `dist/index.html` gerada no build), então `/almox/produtos` e similares funcionam em acesso direto/refresh.
@@ -197,7 +197,7 @@ Passo a passo completo (criação do projeto, Resend, Auth, migrations, admin `g
 - **RF11:** consulta global implementada na UI/API (`listMovements` com suporte offline) e no banco via RPC `almox_search_stock_movements` (filtros/paginação e vínculos de estorno). A migration `20261111120000_rf10_rf11_inventory_and_history.sql` adiciona suporte a RF10/RF11.
 - **Modo offline/mock:** suporte a demo local sem Supabase (auto ou `VITE_OFFLINE_MODE=true`) para navegação dos fluxos principais, incluindo o log global; não substitui validação/garantias do banco.
 - **Implementado no código:** RF01–RF11 e RF13–RF16. Saída usa `almox_register_exit` para validar saldo, setor e permissão no banco; a tela exige revisão antes do envio.
-- **Integração Supabase:** runbook completo em `docs/supabase-go-live.md` (projeto free, Resend, Auth, migrations, Edge Function, secrets, bootstrap `gabirusky`, seeds e checklist RF01–RF16). Falta apenas executar o runbook no projeto recém-criado e marcar o checklist.
+- **Integração Supabase:** runbook completo em `docs/supabase-go-live.md`. Já aplicadas: migrations (10), admin `gabirusky`, seeds de catálogo/demo e deploy no Pages. Pendente: Resend SMTP, URLs do Auth, deploy da Edge Function e checklist RF01–RF16.
 - **Pendente de validação integrada:** aplicar migrations no projeto hospedado e verificar RLS/matriz de acesso, filtros/contagem/paginação em dados reais, concorrência, replay, rollback de auditoria e vínculo de estorno cross-page (especialmente RF08–RF11). Ambiente sem Docker/Supabase não valida esses cenários ponta a ponta.
 - **Qualidade frontend:** scripts disponíveis `dev`, `build`, `typecheck`, `test`, `lint`. Cobertura automatizada de banco/harness integrado pode exigir ambiente Supabase específico.
 - **Privacidade/segredos:** sem `service_role` no frontend; sem senhas/tokens/chaves no repo.

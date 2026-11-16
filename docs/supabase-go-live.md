@@ -4,11 +4,26 @@ Este documento é o passo a passo completo para colocar o ALMOX real (Supabase +
 
 - **App real:** <https://gabirusky.github.io/almox/>
 - **Repositório:** <https://github.com/gabirusky/almox> (público, exigência do Pages free)
-- **Banco:** projeto Supabase free, região São Paulo
+- **Banco:** projeto Supabase free `nkaffjqlgbjfyajatdoh`, região **us-east-1** (N. Virginia)
 - **E-mail transacional:** Resend (SMTP custom)
 - **Admin:** `gabirusky`
 
 > **Importante:** com o provedor de e-mail padrão do Supabase, o Auth só envia mensagens para endereços que pertencem à organização Supabase (2 e-mails/hora). Por isso este guia usa **Resend**. A chave da Resend **não** vai para o GitHub: ela é configurada em **Supabase → Authentication → Emails → SMTP Settings**.
+
+---
+
+## Estado atual (já executado)
+
+- [x] GitHub Secrets `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` criados.
+- [x] Código publicado no GitHub Pages (Actions concluído com sucesso).
+- [x] 10 migrations aplicadas no projeto `nkaffjqlgbjfyajatdoh` (us-east-1).
+- [x] Usuário Auth + perfil `gabirusky` (admin ativo) criados. A senha inicial foi entregue fora do repositório e deve ser trocada após o primeiro login.
+- [x] `seed_catalog.sql` (4 categorias, 4 setores) e `seed_demo_prod.sql` (3 produtos, 3 saldos, 4 movimentos) executados.
+- [ ] Edge Function `admin-invite` + `ALMOX_ALLOWED_ORIGIN` — depende de `SUPABASE_ACCESS_TOKEN` (não disponível no ambiente de execução).
+- [ ] Resend SMTP + configuração de URLs do Auth no dashboard.
+- [ ] Checklist RF01–RF16.
+
+> O projeto foi criado em `us-east-1`, não em São Paulo. Os comandos abaixo usam o pooler `aws-0-us-east-1.pooler.supabase.com:5432`.
 
 ---
 
@@ -48,7 +63,7 @@ O que este guia adiciona:
 2. Organization: crie uma free, se ainda não tiver.
 3. Nome: `almox`.
 4. Database Password: gere uma senha forte e guarde no gerenciador.
-5. Region: **South America (São Paulo)**.
+5. Region: **US East (N. Virginia) — `us-east-1`** (o projeto atual está nesta região).
 6. Crie e aguarde o provisionamento.
 7. Copie:
    - **Project URL**: `https://<PROJECT_REF>.supabase.co`
