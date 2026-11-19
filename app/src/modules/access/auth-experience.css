@@ -221,6 +221,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  margin-top: 1.5rem;
   justify-content: center;
   gap: 0.75rem; /* separação mínima entre os botões (como no landing original) */
   max-height: 8rem;
